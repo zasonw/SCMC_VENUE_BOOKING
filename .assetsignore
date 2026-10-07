@@ -1,0 +1,9 @@
+.git/
+.github/
+node_modules/
+database/
+tests/
+README.md
+wrangler.jsonc
+.gitignore
+.env*

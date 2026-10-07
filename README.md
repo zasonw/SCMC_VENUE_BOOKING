@@ -1,52 +1,40 @@
 # SCMC Venue Booking
 
-Gather — Venue Booking MVP
+A responsive venue calendar for eight rooms, hosted on Cloudflare Workers with Supabase Auth and Postgres. English and Simplified Chinese are supported. Booking hours are 06:00–23:00 Malaysia time.
 
-Calendar-first, mobile-responsive prototype for eight community venues.
+## Deployment
 
-## Run locally
+Cloudflare watches `main`. Build command: blank. Deploy command: `npx wrangler deploy`. `wrangler.jsonc` serves the static website; `.assetsignore` excludes maintenance files.
 
-From this directory, run:
+`index.html` contains the calendar UI. `live.js` connects it to Supabase using a browser-safe publishable key. Never put a service-role key or email credentials in the repository. The Supabase browser SDK is pinned to 2.57.4 on jsDelivr.
 
-```sh
-python3 -m http.server 8080
-```
+## Required Auth settings before registration
 
-Open http://localhost:8080 in a browser. No build step or dependencies are required.
+In Supabase Authentication → URL Configuration, set Site URL and an allowed Redirect URL to the production website URL, including the trailing `/`.
 
-## Review features
+Enable Email sign-in, allow new signups, and keep Confirm email enabled. Configure custom SMTP before inviting the general public. Supabase's default email service only delivers to authorized team addresses and is unsuitable for public registration.
 
-- Calendar and venue schedules for Room 1 through Room 8.
-- English and Simplified Chinese interface with short text labels.
-- Booking form: activity, group, venue, date, start/end time and PIC.
-- Optional contact, attendance and notes.
-- Member/admin preview switch.
-- Pending requests reserve the time slot; overlaps are blocked locally.
-- Administrators approve, reject, block rooms, and cancel pending or confirmed bookings.
-- Members cancel only their own pending bookings. An admin must cancel or reschedule confirmed bookings.
-- Cancelled records stay in history and release their slot.
-- Demo clock can advance 48 hours to exercise automatic approval.
+The initial admin email is configured privately in `venue_private.admin_bootstrap`, not in this repository. It is claimed once when that verified account first signs in. Administrators can use Users to grant or revoke access; the last admin cannot be demoted. Users appear after their first verified sign-in.
 
-## Important: prototype status
+## Booking rules and privacy
 
-This is a browser-only review MVP, not a production booking service.
+- Pending requests immediately reserve a room. A database exclusion constraint prevents simultaneous overlapping reservations.
+- The owner can cancel pending bookings; admins can cancel pending, confirmed or blocked slots.
+- Admins can approve or reject requests and block rooms.
+- A database cron job checks every minute: pending requests that have reached their start time expire; otherwise eligible requests approve after 48 hours.
+- A member cannot move a confirmed booking. Moving another eligible booking restarts the approval window.
+- Guests see room occupancy. Signed-in users see event, group and PIC; contact, notes and history are visible only to the owner and admins.
+- All permissions are checked in Postgres. The UI has no role-preview switch and never uploads demo data.
+- Calendar data refreshes every 30 seconds while active and after changes. A stale display cannot bypass the database conflict constraint.
 
-Records are saved to localStorage on the current browser. Accounts and role selection are simulated. Data is not shared between devices. The approval check runs only while the page is open. Storage availability depends on the browser or preview environment.
+## Database maintenance
 
-The scheduled check approves requests pending for 48 hours if their start time has not passed. Requests starting within 48 hours need explicit admin approval before their start; otherwise they expire. The demo limits booking hours to 06:00–23:00, Singapore time (UTC+8).
+`database/schema.sql` documents the initial deployed schema. Do not rerun it against an initialized database. Apply subsequent changes through reviewed migrations. Private tables deliberately have RLS enabled with no direct client policies or grants: only the checked RPC is accessible. Do not expose the private schema through the Data API.
 
-## Production work remaining
+`venue-approval-every-minute` is the cron job. Review its status in Supabase Cron if approvals stop processing. Database availability, including project pauses, affects the scheduler.
 
-1. Real sign-in and server-enforced roles/ownership.
-2. Shared database and atomic conflict prevention, including simultaneous submissions.
-3. Server-side scheduled approval with reliable retries and audit records.
-4. Server-side validation and authorized cancellation/rescheduling.
-5. Backups, monitoring and recovery procedures.
+## Checks
 
-Cloudflare is the intended hosting destination. Backend selection (D1 or Supabase) is not finalized. Publishing this static prototype does not implement any of the production items above.
+Run `node tests/frontend.cjs` for application logic checks. `tests/backend.sql` checks permissions and booking rules in a transaction that rolls back all fixtures. It should be run before real admin accounts exist, or adapted to account for existing administrators. These checks do not replace browser/device testing or email delivery testing.
 
-## Files
-
-`index.html` contains the current UI, styles, sample data and local demo logic. The conversation-only preview wrapper is not required.
-
-Keep credentials out of this repository. Do not replace demonstration data with real contact details before implementing authentication and access control.
+For local review: `python3 -m http.server 8000` from the repository. Local Auth callbacks require an explicitly allowed localhost URL in Supabase.

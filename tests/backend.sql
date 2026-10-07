@@ -1,0 +1,50 @@
+-- Transactional security and business-rule checks. Leaves no test accounts or bookings.
+begin;
+do $$
+declare a uuid:=gen_random_uuid(); b uuid:=gen_random_uuid(); c uuid:=gen_random_uuid(); bid uuid; bid2 uuid; d text:=to_char(now()+interval '10 days','YYYY-MM-DD'); v jsonb; failed boolean;
+begin
+ insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values(a,'venue-test-admin@example.invalid',now(),'{}'),(b,'venue-test-member@example.invalid',now(),'{}'),(c,'venue-test-other@example.invalid',now(),'{}');
+ insert into venue_private.members values(a,'venue-test-admin@example.invalid','Test Admin',true);
+ perform set_config('request.jwt.claim.sub',b::text,true);
+ v:=public.venue_api('state'); if (v->>'admin')::boolean then raise exception 'TEST: member elevated';end if;
+ failed:=false;begin perform public.venue_api('users');exception when others then failed:=true;end;if not failed then raise exception 'TEST: member listed users';end if;
+ failed:=false;begin perform public.venue_api('set_admin',jsonb_build_object('id',b,'admin',true));exception when others then failed:=true;end;if not failed then raise exception 'TEST: member elevated self';end if;
+ v:=jsonb_build_object('date',d,'start','08:00','end','09:00','room',1,'title','Test event','group','Test','pic','Tester','contact','private-contact','notes','private-note');
+ bid:=(public.venue_api('save',v)->>'id')::uuid;
+ failed:=false;begin perform public.venue_api('save',v);exception when others then failed:=true;end;if not failed then raise exception 'TEST: overlap accepted';end if;
+ failed:=false;begin perform public.venue_api('approve',jsonb_build_object('id',bid));exception when others then failed:=true;end;if not failed then raise exception 'TEST: member approved';end if;
+ perform set_config('request.jwt.claim.sub',c::text,true);
+ failed:=false;begin perform public.venue_api('cancel',jsonb_build_object('id',bid));exception when others then failed:=true;end;if not failed then raise exception 'TEST: other cancelled';end if;
+ if public.venue_api('state')::text like '%private-contact%' then raise exception 'TEST: contact leaked';end if;
+ perform set_config('request.jwt.claim.sub','',true);
+ if public.venue_api('state')::text like '%Test event%' then raise exception 'TEST: anonymous title leaked';end if;
+ failed:=false;begin perform public.venue_api('save',v);exception when others then failed:=true;end;if not failed then raise exception 'TEST: anonymous wrote';end if;
+ perform set_config('request.jwt.claim.sub',b::text,true);
+ perform public.venue_api('cancel',jsonb_build_object('id',bid));
+ bid2:=(public.venue_api('save',v)->>'id')::uuid;
+ perform set_config('request.jwt.claim.sub',a::text,true);
+ perform public.venue_api('approve',jsonb_build_object('id',bid2));
+ perform set_config('request.jwt.claim.sub',b::text,true);
+ failed:=false;begin perform public.venue_api('cancel',jsonb_build_object('id',bid2));exception when others then failed:=true;end;if not failed then raise exception 'TEST: member cancelled confirmed';end if;
+ perform set_config('request.jwt.claim.sub',a::text,true);
+ perform public.venue_api('cancel',jsonb_build_object('id',bid2));
+ failed:=false;begin perform public.venue_api('set_admin',jsonb_build_object('id',a,'admin',false));exception when others then failed:=true;end;if not failed then raise exception 'TEST: last admin removed';end if;
+ perform public.venue_api('set_admin',jsonb_build_object('id',b,'admin',true));
+ perform public.venue_api('set_admin',jsonb_build_object('id',b,'admin',false));
+ perform set_config('request.jwt.claim.sub',b::text,true);
+ bid:=(public.venue_api('save',v)->>'id')::uuid;
+ update venue_private.bookings set created_at=now()-interval '49 hours' where id=bid;
+ perform venue_private.process_approvals();
+ if (select status from venue_private.bookings where id=bid)<>'confirmed' then raise exception 'TEST: auto approval failed';end if;
+ update venue_private.bookings set status='pending',starts_at=now()-interval '1 hour',ends_at=now()+interval '1 hour' where id=bid;
+ perform venue_private.process_approvals();
+ if (select status from venue_private.bookings where id=bid)<>'expired' then raise exception 'TEST: expiration failed';end if;
+end $$;
+set local role anon;
+do $$ begin
+ if has_table_privilege(current_user,'venue_private.bookings','SELECT') then raise exception 'TEST: raw access leaked';end if;
+ if has_function_privilege(current_user,'venue_private.process_approvals()','EXECUTE') then raise exception 'TEST: cron exposed';end if;
+ perform public.venue_api('state');
+end $$;
+rollback;
+select 'PASS: access control, privacy, overlap, cancellation, role changes, last admin, auto approval and expiry' as result;
