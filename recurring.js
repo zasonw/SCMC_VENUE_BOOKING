@@ -82,3 +82,5 @@ function editPerson(id=''){
 }
 async function savePerson(event,id){event.preventDefault();if(mutationInFlight)return;mutationInFlight=true;const f=new FormData(event.target);try{await recurringApi('save_person',{id,name:String(f.get('name')).trim(),user_id:f.get('user_id')||null,fellowships:String(f.get('fellowships')).split(/[,，\n]/).map(t=>t.trim()).filter(Boolean)});await managePeople();toast('Person saved.');}catch(error){repeatError(error);}finally{mutationInFlight=false;}}
 async function deletePerson(id){if(mutationInFlight||!confirm(rt('Delete this directory entry? The login account is kept.')))return;mutationInFlight=true;try{await recurringApi('delete_person',{id});await managePeople();toast('Person removed.');}catch(error){repeatError(error);}finally{mutationInFlight=false;}}
+
+if(!window.__TEST__)startLive();

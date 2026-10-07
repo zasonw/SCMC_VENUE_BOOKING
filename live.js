@@ -106,4 +106,4 @@ async function startLive(){
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshLive();});
  }catch(error){liveStatus(friendlyError(error),true);}
 }
-if(!window.__TEST__)startLive();
+// Startup runs after recurring.js installs its form and directory controls.
