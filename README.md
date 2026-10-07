@@ -1,6 +1,6 @@
 # SCMC Venue Booking
 
-A responsive venue calendar for eight rooms, hosted on Cloudflare Workers with Supabase Auth and Postgres. English and Simplified Chinese are supported. Booking hours are 06:00–23:00 Malaysia time.
+A responsive venue calendar for nine rooms, hosted on Cloudflare Workers with Supabase Auth and Postgres. English and Simplified Chinese are supported. Booking hours are 06:00–23:00 Malaysia time.
 
 ## Deployment
 
@@ -38,3 +38,17 @@ The initial admin email is configured privately in `venue_private.admin_bootstra
 Run `node tests/frontend.cjs` for application logic checks. `tests/backend.sql` checks permissions and booking rules in a transaction that rolls back all fixtures. It should be run before real admin accounts exist, or adapted to account for existing administrators. These checks do not replace browser/device testing or email delivery testing.
 
 For local review: `python3 -m http.server 8000` from the repository. Local Auth callbacks require an explicitly allowed localhost URL in Supabase.
+
+## Recurring bookings and fellowship directory
+
+The Repeat field supports Once, Weekly (selected weekdays), and Monthly (same date or the same ordinal weekday as the start date). A required end date must be within six calendar months of today. Months lacking the requested day or fifth weekday are skipped. Each occurrence is stored as a normal booking and follows the existing approval rules.
+
+Choose Preview dates before submitting. Clashes and past times are disabled; uncheck additional dates to skip them. The server regenerates and validates dates, and all selected dates are saved in one transaction. If availability changes, no part of the new series is booked. A request key prevents duplicates when retrying a submission.
+
+Open any recurring booking and select Series to see its dates. Admins can approve upcoming pending dates or cancel eligible dates together. Members can cancel their own pending dates only; confirmed dates are retained. Edit applies to one occurrence, not the whole series.
+
+People is an admin-only directory with names and multiple fellowship tags. Entries can optionally be linked to an existing registered account. Directory entries do not create accounts or grant admin privileges. Deleting a directory entry keeps the linked login account. Initial personal records are maintained privately in the database and are not committed here.
+
+The configured rooms are 圣堂, 副堂, 新会议室, 旧会议室, Cafe, 厨房, 亲子室, 喜乐1 and 喜乐2. Existing room IDs are retained. Admin room editing validates against the current room count.
+
+For a fresh database, apply `database/schema.sql` then `database/recurring-and-people.sql`. These scripts have already been applied to the connected project; do not rerun them there. Run `node tests/recurring.cjs` for recurrence UI logic and `tests/recurring.sql` for transactional backend checks. Backend test fixtures roll back and must not be treated as real accounts.

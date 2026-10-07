@@ -97,7 +97,7 @@ async function manageUsers(){
 }
 async function setAdmin(id,admin){if(!confirm(language==='zh'?(admin?'授予此用户管理员权限？':'移除此用户的管理员权限？'):(admin?'Give this user admin access?':'Remove admin access for this user?')))return;const ok=await mutate('set_admin',{id,admin},'Access updated.','access-error');if(ok&&role==='admin')await manageUsers();}
 async function startLive(){
- rooms=Array.from({length:8},(_,i)=>({id:i+1,name:'Room '+(i+1),enabled:true}));bookings=[];offset=0;selected=dayKey();month=selected.slice(0,7);me='';
+ rooms=['圣堂','副堂','新会议室','旧会议室','Cafe','厨房','亲子室','喜乐1','喜乐2'].map((name,i)=>({id:i+1,name,enabled:true}));bookings=[];offset=0;selected=dayKey();month=selected.slice(0,7);me='';
  document.getElementById('brand-icon').innerHTML='';document.getElementById('plus-icon').innerHTML='';render();
  try{if(!window.supabase)throw Error('Connection failed. Please retry.');db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
  db.auth.onAuthStateChange(event=>{setTimeout(()=>{if(event==='PASSWORD_RECOVERY')authForm('reset');refreshLive();},0);});
