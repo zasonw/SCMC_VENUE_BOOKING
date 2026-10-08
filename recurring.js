@@ -49,18 +49,27 @@ function updateRepeatCount(){const form=document.getElementById('booking-form');
 function repeatError(error){const e=document.getElementById('form-error');if(e){e.textContent=rt(friendlyError(error));e.style.display='block';}else toast(friendlyError(error));}
 const singleSubmitBooking=submitBooking;
 submitBooking=async function(event,id,block){
- const form=event.target;if(id||block||!form.elements.repeat_frequency||form.elements.repeat_frequency.value==='once')return singleSubmitBooking(event,id,block);
- event.preventDefault();if(repeatBusy)return;const payload=repeatPayload(form),signature=JSON.stringify(payload),button=form.querySelector('[type="submit"]');repeatBusy=true;button.disabled=true;
+ const form=event.target;if(repeatBusy){event.preventDefault();return;}
+ if(id||block||!form.elements.repeat_frequency||form.elements.repeat_frequency.value==='once')return singleSubmitBooking(event,id,block);
+ event.preventDefault();const revision=sessionRevision;const payload=repeatPayload(form),signature=JSON.stringify(payload),button=form.querySelector('[type="submit"]');repeatBusy=true;button.disabled=true;
  try{
   if(!repeatPreview||repeatPreview.signature!==signature){
    const rows=await recurringApi('preview',payload);
-   if(document.getElementById('booking-form')!==form||JSON.stringify(repeatPayload(form))!==signature)return;
+   if(revision!==sessionRevision||document.getElementById('booking-form')!==form||!document.getElementById('modal').open||JSON.stringify(repeatPayload(form))!==signature)return;
    repeatPreview={signature,rows};repeatRequestKey=crypto.randomUUID();document.getElementById('repeat-preview').innerHTML=renderRepeatPreview(rows);updateRepeatCount();return;
   }
   const dates=[...form.querySelectorAll('[name="occurrence"]:checked')].map(e=>e.value);if(!dates.length)throw Error('Select at least one available date.');
   await recurringApi('create',{...payload,dates,request_key:repeatRequestKey});
-  selected=dates[0];month=selected.slice(0,7);slotSelection=null;closeModal();await refreshLive();toast('Series submitted.');
- }catch(error){repeatError(error);}finally{repeatBusy=false;button.disabled=false;}
+  if(revision!==sessionRevision)return;
+  selected=dates[0];month=selected.slice(0,7);slotSelection=null;
+  if(document.getElementById('booking-form')===form)closeModal();
+  await refreshLive();if(revision===sessionRevision)toast('Series submitted.');
+ }catch(error){
+  if(revision!==sessionRevision||document.getElementById('booking-form')!==form||!document.getElementById('modal').open)return;
+  // Only definite availability failures invalidate the preview; network retries retain their idempotency key.
+  if(/already held or booked|Choose a future time|not accepting bookings/.test(error?.message||''))clearRepeatPreview();
+  repeatError(error);
+ }finally{repeatBusy=false;button.disabled=false;}
 };
 const recurringOpenDetail=openDetail;
 openDetail=function(id){recurringOpenDetail(id);const b=bookings.find(b=>b.id===id);if(!b?.series_id)return;const modal=document.getElementById('modal');modal.querySelector('.modal-body').insertAdjacentHTML('afterbegin','<p class="series-label">'+rt('Recurring')+'</p>');if(role==='admin'||b.owner==='member')modal.querySelector('.modal-footer').insertAdjacentHTML('afterbegin','<button class="secondary" onclick="openSeries(\''+b.series_id+'\')">'+rt('Series')+'</button>');};
@@ -76,7 +85,7 @@ function peopleRows(query=''){
  const q=query.trim().toLowerCase(),list=peopleCache.filter(p=>(p.name+' '+p.fellowships.join(' ')).toLowerCase().includes(q));
  return list.length?list.map(p=>'<div class="user-row"><div><strong>'+esc(p.name)+'</strong><div class="fellowship-tags">'+p.fellowships.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>'+(p.email?'<small>'+esc(p.email)+'</small>':'')+'</div><button class="secondary" onclick="editPerson(\''+p.id+'\')">'+rt('Edit')+'</button></div>').join(''):'<p>'+rt('No people found.')+'</p>';
 }
-async function managePeople(){if(role!=='admin')return;try{[peopleCache,peopleAccounts]=await Promise.all([recurringApi('people'),api('users')]);showModal(modalHead(rt('People'))+'<div class="modal-body"><div class="people-toolbar"><input type="search" placeholder="'+rt('Search name or fellowship')+'" aria-label="'+rt('Search name or fellowship')+'" oninput="document.getElementById(\'people-list\').innerHTML=peopleRows(this.value)"><button class="primary" onclick="editPerson()">'+rt('Add person')+'</button></div><div id="people-list">'+peopleRows()+'</div></div>');}catch(error){toast(friendlyError(error));}}
+async function managePeople(){if(role!=='admin')return;const revision=sessionRevision;try{const [people,accounts]=await Promise.all([recurringApi('people'),api('users')]);if(revision!==sessionRevision||role!=='admin')return;peopleCache=people;peopleAccounts=accounts;showModal(modalHead(rt('People'))+'<div class="modal-body"><div class="people-toolbar"><input type="search" placeholder="'+rt('Search name or fellowship')+'" aria-label="'+rt('Search name or fellowship')+'" oninput="document.getElementById(\'people-list\').innerHTML=peopleRows(this.value)"><button class="primary" onclick="editPerson()">'+rt('Add person')+'</button></div><div id="people-list">'+peopleRows()+'</div></div>');}catch(error){toast(friendlyError(error));}}
 function editPerson(id=''){
  const p=peopleCache.find(p=>p.id===id);showModal(modalHead(rt(p?'Edit person':'Add person'))+'<form onsubmit="savePerson(event,\''+id+'\')"><div class="modal-body"><div class="form-grid"><label class="field wide"><span>Name</span><input name="name" required maxlength="120" value="'+esc(p?.name||'')+'"></label><label class="field wide"><span>Fellowships</span><textarea name="fellowships" maxlength="2400">'+esc(p?.fellowships.join(', ')||'')+'</textarea><small>Separate tags with commas.</small></label><label class="field wide"><span>Account <small>Optional</small></span><select name="user_id"><option value="">No account</option>'+peopleAccounts.map(a=>'<option value="'+a.id+'" '+(p?.user_id===a.id?'selected':'')+'>'+esc(a.name)+' · '+esc(a.email)+'</option>').join('')+'</select><small>Linking an account does not grant admin access.</small></label></div><div class="form-error" id="form-error" role="alert"></div></div><div class="modal-footer">'+(p?'<button type="button" class="danger" onclick="deletePerson(\''+p.id+'\')">Delete</button>':'')+'<button type="button" class="secondary" onclick="managePeople()">Back</button><button class="primary">Save</button></div></form>');
 }

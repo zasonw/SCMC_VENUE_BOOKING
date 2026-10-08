@@ -103,8 +103,8 @@ rejectBooking=(id,reason)=>mutate('reject',{id,reason},'Request rejected. The sl
 cancelBooking=id=>mutate('cancel',{id},'Booking cancelled. The slot is available again.');
 saveRooms=function(event){event.preventDefault();const f=new FormData(event.target);return mutate('rooms',{rooms:rooms.map(r=>({id:r.id,name:String(f.get('room'+r.id)).trim(),enabled:f.get('enabled'+r.id)==='yes'}))},'Venues updated.','room-error');};
 async function manageUsers(){
- if(role!=='admin')return;
- try{const users=await api('users');showModal(modalHead('Users')+'<div class="modal-body"><div class="user-list">'+users.map(u=>'<div class="user-row"><div><strong>'+esc(u.name)+'</strong><small>'+esc(u.email)+'</small><span>'+liveText(u.is_admin?'Admin':'Member')+'</span></div><button class="secondary" onclick="setAdmin(\''+u.id+'\','+!u.is_admin+')">'+liveText(u.is_admin?'Remove admin':'Make admin')+'</button></div>').join('')+'</div><div class="form-error" id="access-error" role="alert"></div></div>');}
+ if(role!=='admin')return;const revision=sessionRevision;
+ try{const users=await api('users');if(revision!==sessionRevision||role!=='admin')return;showModal(modalHead('Users')+'<div class="modal-body"><div class="user-list">'+users.map(u=>'<div class="user-row"><div><strong>'+esc(u.name)+'</strong><small>'+esc(u.email)+'</small><span>'+liveText(u.is_admin?'Admin':'Member')+'</span></div><button class="secondary" onclick="setAdmin(\''+u.id+'\','+!u.is_admin+')">'+liveText(u.is_admin?'Remove admin':'Make admin')+'</button></div>').join('')+'</div><div class="form-error" id="access-error" role="alert"></div></div>');}
  catch(error){toast(friendlyError(error));}
 }
 async function setAdmin(id,admin){if(!confirm(language==='zh'?(admin?'授予此用户管理员权限？':'移除此用户的管理员权限？'):(admin?'Give this user admin access?':'Remove admin access for this user?')))return;const ok=await mutate('set_admin',{id,admin},'Access updated.','access-error');if(ok&&role==='admin')await manageUsers();}

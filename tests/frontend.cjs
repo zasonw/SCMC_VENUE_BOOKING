@@ -31,5 +31,8 @@ run(base);run(fs.readFileSync(__dirname+'/../live.js','utf8'));
  run("clearAccountState();db.auth.getSession=async()=>({data:{session:null}});releaseState({data:{rooms:[],bookings:[{id:'private'}],admin:true,name:'Old admin'}})");
  await run('accountRefresh');assert.equal(run('session'),null);assert.equal(run('role'),'member');assert.equal(run('bookings.length'),0);assert.equal(run('me'),'');
  console.log('PASS: queued refreshes await fresh state; sign-out discards in-flight private account data.');
+ run("role='admin';let resolveUsers;db.rpc=()=>new Promise(resolve=>resolveUsers=resolve);let userLoad=manageUsers();clearAccountState();resolveUsers({data:[{id:'private',name:'Private',email:'private@example.invalid',is_admin:true}]})");
+ await run('userLoad');assert.equal(get('modal').open,false);
+ console.log('PASS: delayed admin-user responses cannot reopen the panel after sign-out.');
  console.log('PASS: production startup, no sample data, sign-in gates, role refresh, failed writes, admin controls, 06:00–23:00, Chinese labels.');
 })().catch(e=>{console.error(e);process.exitCode=1});
