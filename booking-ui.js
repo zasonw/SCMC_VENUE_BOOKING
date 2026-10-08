@@ -52,7 +52,7 @@ function changeClassicDate(date){if(!date)return;selected=date;month=date.slice(
 function openClassicBooking(){
  if(!liveReady)return toast('Please wait for the calendar to connect.');
  if(selected<dayKey())selected=dayKey();
- showModal(modalHead(translateText('Book'))+'<div class="modal-body classic-picker"><label class="field"><span>'+translateText('Booking date')+'</span><input type="date" value="'+selected+'" min="'+dayKey()+'" onchange="changeClassicDate(this.value)"></label><div class="booking-times"><label><span>'+translateText('Start time')+'</span><input type="time" value="'+slotStart+'" min="06:00" max="23:00" onchange="slotStart=this.value;slotSelection=null;updateClassicAvailability()"></label><label><span>'+translateText('End time')+'</span><input type="time" value="'+slotEnd+'" min="06:00" max="23:00" onchange="slotEnd=this.value;slotSelection=null;updateClassicAvailability()"></label></div><div id="classic-rooms">'+classicRoomChoicesHTML()+'</div></div>');
+ showModal(modalHead(translateText('Book'))+'<div class="modal-body classic-picker"><label class="field"><span>'+translateText('Booking date')+'</span><input type="date" required value="'+selected+'" min="'+dayKey()+'" onchange="changeClassicDate(this.value)"></label><div class="booking-times"><label><span>'+translateText('Start time')+'</span><input type="time" required value="'+slotStart+'" min="06:00" max="23:00" onchange="slotStart=this.value;slotSelection=null;updateClassicAvailability()"></label><label><span>'+translateText('End time')+'</span><input type="time" required value="'+slotEnd+'" min="06:00" max="23:00" onchange="slotEnd=this.value;slotSelection=null;updateClassicAvailability()"></label></div><div id="classic-rooms">'+classicRoomChoicesHTML()+'</div></div>');
 }
 bookSlot=function(room){
  if(conflict({room,date:selected,start:slotStart,end:slotEnd})||slotStart>=slotEnd||stamp(selected,slotStart)<=now())return toast('Please choose an available future time.');
@@ -60,4 +60,23 @@ bookSlot=function(room){
  openForm(room,null,slotStart);
  const end=document.querySelector('#booking-form [name="end"]');if(end)end.value=slotEnd;
 };
+// Derive required markers from the actual form constraints, including conditional fields.
+function markRequiredFields(root=document.getElementById('modal')){
+ if(!root)return;
+ root.querySelectorAll('label').forEach(label=>{
+  const control=label.querySelector('input:not([type="hidden"]),select,textarea');
+  const required=!!control&&control.required&&!control.disabled;
+  const caption=label.querySelector('span')||label;
+  let marker=caption.querySelector('.required-marker');
+  if(required&&!marker){marker=document.createElement('span');marker.className='required-marker';marker.textContent=' *';marker.setAttribute('aria-hidden','true');if(caption===label)label.insertBefore(marker,control);else caption.appendChild(marker);}
+  if(!required&&marker)marker.remove();
+ });
+}
+const modalWithRequired=showModal;
+showModal=function(html){modalWithRequired(html);markRequiredFields();};
+const fellowshipWithRequired=syncFellowship;
+syncFellowship=function(form){fellowshipWithRequired(form);markRequiredFields(form);};
+const repeatWithRequired=repeatControls;
+repeatControls=function(){repeatWithRequired();markRequiredFields();};
 if(!window.__TEST__)startLive();
+
