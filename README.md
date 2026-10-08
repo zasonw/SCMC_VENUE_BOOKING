@@ -58,3 +58,5 @@ For a fresh database, apply `database/schema.sql` then `database/recurring-and-p
 Slot taps update the existing buttons in place, preserving scroll position and focus while selecting a consecutive range. Data refreshes restore the grid's scroll position when its date and room set remain unchanged. An explicit 84px time column and room-count-based table width keep a filtered single-room grid within the phone screen.
 
 Bookings require a Fellowship dropdown selection and Purpose. Other requires a fellowship name. These use the existing group and title fields, retaining historical bookings and the database's required-field constraints. `booking-ui.js` installs the interaction fixes before starting the application. Run `node tests/booking-ui.cjs` for regression checks; real Safari device verification remains a separate check.
+
+The calendar overview has no embedded booking picker. Book opens the classic date/time/room picker in a dialog. The Slots tab displays the grid directly, with no secondary Slots/Classic toggle. Editing an existing booking and continuing from selected slots still open the booking details form directly.

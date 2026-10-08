@@ -23,3 +23,8 @@ form.elements.fellowship_choice.value='青团';run('syncFellowship(form)');asser
 form.elements.title.value='   ';let prevented=false;ctx.event={target:form,preventDefault(){prevented=true}};run("submitBooking(event,'',false)");assert(prevented);assert(get('form-error').textContent.includes('purpose'));
 assert(html.includes("block?'Reason / title':'Purpose'"));assert(html.includes('src="/booking-ui.js"'));
 console.log('PASS: slot range selection without grid replacement, scroll retention, room switching, clearing, filtered column sizing and required fellowship/purpose.');
+run("role='member';mode='calendar';renderSchedule()");assert(!get('content').innerHTML.includes('mobile-booking'));assert(!get('content').innerHTML.includes('slot-scroll'));
+run("mode='venues';renderSchedule()");assert(get('content').innerHTML.includes('slot-scroll'));assert(!get('content').innerHTML.includes('booking-view-toggle'));assert(!get('content').innerHTML.includes('>Classic<'));
+run("liveReady=true;slotStart='14:00';slotEnd='16:00';session=null;openClassicBooking()");assert(get('modal').innerHTML.includes('classic-picker'));assert(get('modal').innerHTML.includes('changeClassicDate'));assert(get('modal').innerHTML.includes('bookSlot(1)'));
+run('bookSlot(1)');assert(get('modal').innerHTML.includes('submitAuth'));assert(html.includes('onclick="openClassicBooking()"'));
+console.log('PASS: calendar overview without redundant picker, direct Slots grid, Book popup and guest sign-in without a missing-form error.');
