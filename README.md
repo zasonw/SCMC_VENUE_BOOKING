@@ -52,3 +52,9 @@ People is an admin-only directory with names and multiple fellowship tags. Entri
 The configured rooms are 圣堂, 副堂, 新会议室, 旧会议室, Cafe, 厨房, 亲子室, 喜乐1 and 喜乐2. Existing room IDs are retained. Admin room editing validates against the current room count.
 
 For a fresh database, apply `database/schema.sql` then `database/recurring-and-people.sql`. These scripts have already been applied to the connected project; do not rerun them there. Run `node tests/recurring.cjs` for recurrence UI logic and `tests/recurring.sql` for transactional backend checks. Backend test fixtures roll back and must not be treated as real accounts.
+
+## Mobile slot selection and booking fields
+
+Slot taps update the existing buttons in place, preserving scroll position and focus while selecting a consecutive range. Data refreshes restore the grid's scroll position when its date and room set remain unchanged. An explicit 84px time column and room-count-based table width keep a filtered single-room grid within the phone screen.
+
+Bookings require a Fellowship dropdown selection and Purpose. Other requires a fellowship name. These use the existing group and title fields, retaining historical bookings and the database's required-field constraints. `booking-ui.js` installs the interaction fixes before starting the application. Run `node tests/booking-ui.cjs` for regression checks; real Safari device verification remains a separate check.

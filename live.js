@@ -20,7 +20,8 @@ Object.assign(translations,{
  'Use at least 8 characters.':'请使用至少 8 个字符','Please wait for the calendar to connect.':'请等待日历连接','Saving…':'保存中…'
 });
 const liveText=s=>translateText(s);
-function liveStatus(text,error=false){const e=document.getElementById('sync-status');e.textContent=liveText(text);e.style.color=error?'#a22':'';}
+let lastSyncText='Connecting…',lastSyncError=false;
+function liveStatus(text,error=false){lastSyncText=text;lastSyncError=error;const e=document.getElementById('sync-status');e.textContent=liveText(text);e.style.color=error?'#a22':'';}
 function friendlyError(error){const message=error?.message||'Connection failed. Please retry.';if(/email address not authorized|email rate limit|error sending|smtp/i.test(message))return 'Email service unavailable. Ask an admin to check email settings.';return message;}
 async function api(action,payload={}){if(!db)throw Error('Connection failed. Please retry.');const {data,error}=await db.rpc('venue_api',{action,payload});if(error)throw error;return data;}
 // Demo state must never be used as a production data source.
