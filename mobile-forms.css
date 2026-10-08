@@ -1,0 +1,43 @@
+/* Prevent intrinsic input widths from stretching grid columns, including iOS date controls. */
+#modal .form-grid,
+#modal .booking-times { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#modal .form-grid > *,
+#modal .field,
+#modal .booking-times > *,
+#modal .modal-head > div { min-width: 0; }
+#modal .form-grid > .wide { grid-column: 1 / -1; }
+#modal .field input,
+#modal .field select,
+#modal .field textarea,
+#modal .booking-times input { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+#modal input[type="date"],
+#modal input[type="time"] { display: block; min-inline-size: 0; }
+#modal input::-webkit-date-and-time-value { min-width: 0; text-align: left; }
+#modal .modal-head { gap: 12px; }
+#modal .modal-head > button { flex-shrink: 0; }
+#modal .modal-body { overflow-wrap: anywhere; }
+
+@media (max-width: 700px) {
+  #modal { width: calc(100% - 16px); max-width: 560px; max-height: 92vh; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; }
+  #modal .modal-head { padding: 16px; }
+  #modal .modal-head h2 { font-size: 20px; line-height: 1.3; }
+  #modal .modal-head p { font-size: 13px; line-height: 1.4; }
+  #modal .modal-head > button { min-width: 60px; min-height: 44px; }
+  #modal .modal-body { padding: 16px; }
+  #modal .form-grid { gap: 16px 12px; }
+  #modal .form-grid > * { grid-column: 1 / -1; }
+  #modal .form-grid > .time-field { grid-column: span 1; }
+  #modal .field { gap: 6px; font-size: 13px; }
+  #modal .field input,
+  #modal .field select,
+  #modal .field textarea,
+  #modal .booking-times input { font-size: 16px; line-height: 1.4; padding: 11px 12px; min-height: 48px; }
+  #modal .field textarea { min-height: 88px; }
+  #modal .optional-fields summary { font-size: 14px; min-height: 44px; display: list-item; padding: 10px 0; margin-bottom: 0; }
+  #modal .optional-fields[open] summary { margin-bottom: 12px; }
+  #modal .modal-footer { position: sticky; bottom: 0; z-index: 10; gap: 10px; padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -4px 16px #223b3208; }
+  #modal .modal-footer button { min-height: 48px; font-size: 16px; }
+  #modal .modal-footer .primary { flex: 1; }
+  #modal .repeat-date { flex-wrap: wrap; }
+  #modal .weekday-picks label { min-height: 44px; }
+}
