@@ -34,3 +34,14 @@ ctx.document.createElement=()=>({className:'',textContent:'',setAttribute(){},re
 run('markRequiredFields(requiredRoot)');assert.equal(marker.textContent,' *');const firstMarker=marker;run('markRequiredFields(requiredRoot)');assert.strictEqual(marker,firstMarker);
 control.disabled=true;run('markRequiredFields(requiredRoot)');assert.equal(marker,null);control.disabled=false;control.required=false;run('markRequiredFields(requiredRoot)');assert.equal(marker,null);
 console.log('PASS: required asterisks, no duplicate markers, and optional/disabled fields unmarked.');
+
+// Cleared dates cannot silently reuse the previous day, and unavailable selections cannot proceed.
+run("session={user:{id:'member'}};changeClassicDate('')");
+assert(!run('classicRoomChoicesHTML()').includes('room-choice available'));
+const before=get('modal').innerHTML;run('bookSlot(1)');assert.equal(get('modal').innerHTML,before);
+run("changeClassicDate(addDays(dayKey(),2));slotStart='';slotEnd='16:00'");assert(!run('classicRoomChoicesHTML()').includes('room-choice available'));
+run("slotStart='14:00';slotSelection={room:1,first:10,last:11};rooms[0].enabled=false;proceedSlots()");assert.equal(run('slotSelection'),null);
+run("rooms[0].enabled=true;slotSelection={room:1,first:10,last:11};bookings=[{id:'held',room:1,date:selected,start:slotTime(10),end:slotTime(12),status:'pending'}];proceedSlots()");assert.equal(run('slotSelection'),null);
+run("bookings=[];slotSelection={room:1,first:10,last:11};roomFilter='2'");assert.equal(run('validSlotSelection()'),false);
+run("roomFilter='';selected=addDays(dayKey(),-1)");assert.equal(run('validSlotSelection()'),false);
+console.log('PASS: empty date/time, disabled room, newly held range, changed room filter, and past selection are rejected.');

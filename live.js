@@ -3,6 +3,7 @@
 const SUPABASE_URL='https://lftsgwzokyzbfnejeoqn.supabase.co';
 const SUPABASE_KEY='sb_publishable_kXYq3rmWANHanFLvxIlqpA_Yrl43OQB';
 let db, session=null, liveReady=false, refreshInFlight=false, mutationInFlight=false;
+let refreshPromise=null,refreshAgain=false,sessionRevision=0;
 Object.assign(translations,{
  'Sign in':'登录','Sign out':'退出','Register':'注册','Email':'邮箱','Password':'密码','Name':'姓名','Users':'用户','Member':'会员','Admin':'管理员','Guest':'访客',
  'Refresh':'刷新','Connecting…':'连接中…','Updated':'已更新','Connection failed. Please retry.':'连接失败 请重试',
@@ -35,18 +36,28 @@ render=function(){
  document.getElementById('user-role').textContent=liveText(session?(role==='admin'?'Admin':'Member'):'Guest');
  document.getElementById('account-controls').innerHTML=session?'<span class="account-name">'+esc(me)+'</span>'+(role==='admin'?'<button class="secondary" onclick="manageUsers()">'+liveText('Users')+'</button>':'')+'<button class="secondary" onclick="signOut()">'+liveText('Sign out')+'</button>':'<button class="secondary" onclick="authForm()">'+liveText('Sign in')+'</button>';
 };
-async function refreshLive(){
- if(refreshInFlight||!db)return;
+// Coalesce refreshes without dropping a refresh requested after a write or auth change.
+function refreshLive(){
+ if(!db)return Promise.resolve();
+ if(refreshPromise){refreshAgain=true;return refreshPromise;}
  refreshInFlight=true;
- try{
-  const {data:{session:current},error}=await db.auth.getSession();if(error)throw error;
-  session=current;
-  const data=await api('state');
-  rooms=data.rooms;bookings=data.bookings.map(b=>({...b,attendance:b.attendance??''}));
-  role=session&&data.admin?'admin':'member';me=data.name||'';liveReady=true;
-  if(view==='admin'&&role!=='admin')view='schedule';render();liveStatus('Shared calendar');
- }catch(error){liveReady=false;liveStatus(friendlyError(error),true);}
- finally{refreshInFlight=false;}
+ refreshPromise=(async()=>{
+  do{
+   refreshAgain=false;const revision=sessionRevision;
+   try{
+    const {data:{session:current},error}=await db.auth.getSession();if(error)throw error;
+    const data=await api('state');
+    if(revision!==sessionRevision){refreshAgain=true;continue;}
+    session=current;rooms=data.rooms;bookings=data.bookings.map(b=>({...b,attendance:b.attendance??''}));
+    role=session&&data.admin?'admin':'member';me=data.name||'';liveReady=true;
+    if(view==='admin'&&role!=='admin')view='schedule';render();liveStatus('Shared calendar');
+   }catch(error){if(revision!==sessionRevision){refreshAgain=true;continue;}liveReady=false;liveStatus(friendlyError(error),true);}
+  }while(refreshAgain);
+ })().finally(()=>{refreshInFlight=false;refreshPromise=null;});
+ return refreshPromise;
+}
+function clearAccountState(nextSession=null){
+ sessionRevision++;session=nextSession;liveReady=false;role='member';me='';bookings=[];slotSelection=null;view='schedule';closeModal();render();
 }
 const bookingFormBase=openForm;
 openForm=function(...args){if(!session)return authForm();if(!liveReady)return toast('Please wait for the calendar to connect.');bookingFormBase(...args);const field=document.querySelector('#booking-form [name="pic"]');if(field&&!args[1])field.value=me;};
@@ -78,7 +89,7 @@ async function submitAuth(event,mode){
  }catch(error){message.textContent=liveText(friendlyError(error));}
  finally{button.disabled=false;}
 }
-async function signOut(){const {error}=await db.auth.signOut();if(error)return toast(friendlyError(error));session=null;role='member';me='';bookings=[];view='schedule';closeModal();render();await refreshLive();}
+async function signOut(){const {error}=await db.auth.signOut();if(error)return toast(friendlyError(error));clearAccountState();await refreshLive();}
 async function mutate(action,payload,success,errorElement='form-error'){
  if(mutationInFlight)return false;mutationInFlight=true;
  const buttons=[...document.querySelectorAll('#modal button')];buttons.forEach(b=>b.disabled=true);
@@ -101,7 +112,10 @@ async function startLive(){
  rooms=['圣堂','副堂','新会议室','旧会议室','Cafe','厨房','亲子室','喜乐1','喜乐2'].map((name,i)=>({id:i+1,name,enabled:true}));bookings=[];offset=0;selected=dayKey();month=selected.slice(0,7);me='';
  document.getElementById('brand-icon').innerHTML='';document.getElementById('plus-icon').innerHTML='';render();
  try{if(!window.supabase)throw Error('Connection failed. Please retry.');db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
- db.auth.onAuthStateChange(event=>{setTimeout(()=>{if(event==='PASSWORD_RECOVERY')authForm('reset');refreshLive();},0);});
+ db.auth.onAuthStateChange((event,nextSession)=>{
+  if(event==='SIGNED_OUT'||(session?.user?.id||null)!==(nextSession?.user?.id||null))clearAccountState(nextSession);
+  setTimeout(()=>{if(event==='PASSWORD_RECOVERY')authForm('reset');refreshLive();},0);
+ });
  await refreshLive();
  setInterval(()=>{if(!document.hidden&&!document.getElementById('modal').open)refreshLive();},30000);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshLive();});
