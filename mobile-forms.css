@@ -47,3 +47,15 @@
 @media(max-width:700px){.mine-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.mine-tabs button{min-height:44px}.booking-review .detail-grid{grid-template-columns:minmax(0,1fr)}#modal .modal-body{scroll-margin-top:12px}}
 
 #assistant-result{margin-top:20px}#assistant-result dd{margin:4px 0 0;overflow-wrap:anywhere}.assistant-dates{max-height:200px;overflow:auto;margin:12px 0}#assistant-error{color:#a33227}#assistant-form textarea{min-height:120px}
+
+.assistant-launcher{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:30;width:56px;height:56px;display:grid;place-items:center;border-radius:50%;background:var(--green);color:#fff;box-shadow:0 4px 18px #173e4933;border:2px solid #fff}
+.assistant-launcher svg{width:29px;height:29px;stroke-width:1.7}
+.assistant-launcher:hover{background:#194532}
+body:has(#modal[open]) .assistant-launcher{visibility:hidden}
+body:has(.slot-proceed) .assistant-launcher{bottom:calc(96px + env(safe-area-inset-bottom))}
+.main{padding-bottom:100px}
+.assistant-voice{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.assistant-voice button{display:flex;align-items:center;gap:7px;min-height:44px}
+.assistant-voice select{min-height:44px;font-size:16px}
+#assistant-mic[aria-pressed="true"]{background:#fae9e6;color:#962d20;border-color:#cc675a}
+@media(max-width:700px){.assistant-launcher{right:14px;width:52px;height:52px}.main{padding-bottom:90px}}

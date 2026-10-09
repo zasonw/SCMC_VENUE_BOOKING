@@ -16,3 +16,16 @@ const picks=[{value:'0',checked:false},{value:'1',checked:true}];elements.set('b
 run('useAssistantDraft()');assert.equal(opened,1);assert.equal(fields.end.value,'22:00');assert.equal(fields.group.value,'Custom');assert.equal(fields.repeat_frequency.value,'weekly');assert.equal(picks[0].checked,true);assert.equal(picks[1].checked,false);
 run("language='zh'");assert.equal(run("rt('Assistant')"),'预约助手');
 console.log('PASS: assistant sign-in gate, safe summary output, booking draft handoff, custom fellowship and recurring fields.');
+assert(run('assistantVoiceHTML()').includes('键盘麦克风'));
+let recognizer;
+ctx.window.SpeechRecognition=class{constructor(){recognizer=this}start(){this.started=true}stop(){this.stopped=true;this.onend?.()}abort(){this.aborted=true}};
+const speechButton={disabled:false},speechInput={value:'Existing',readOnly:false};
+const speechForm={elements:{request:speechInput},querySelector:()=>speechButton};
+elements.set('assistant-form',speechForm);elements.set('assistant-mic',{innerHTML:'',setAttribute(k,v){this[k]=v}});elements.set('assistant-voice-language',{value:'zh-CN',disabled:false});get('modal').open=true;
+run('toggleAssistantVoice()');assert(recognizer.started);assert.equal(recognizer.lang,'zh-CN');assert(speechInput.readOnly);assert(speechButton.disabled);
+const result=[{transcript:'明天晚上八点'}];result.isFinal=true;recognizer.onresult({results:[result]});recognizer.onresult({results:[result]});assert.equal(speechInput.value,'Existing 明天晚上八点');
+run('toggleAssistantVoice()');assert(recognizer.stopped);assert(!speechInput.readOnly);assert(!speechButton.disabled);assert.equal(run('assistantRecognition'),null);
+run('toggleAssistantVoice()');recognizer.onerror({error:'not-allowed'});assert.equal(run('assistantRecognition'),null);assert(!speechInput.readOnly);assert(get('assistant-voice-status').textContent.includes('权限'));
+run('toggleAssistantVoice()');const oldResult=recognizer.onresult;run('closeModal()');assert(recognizer.aborted);const savedText=speechInput.value;oldResult({results:[result]});assert.equal(speechInput.value,savedText);
+assert(html.includes('id="assistant-launcher"'));assert(!fs.readFileSync(__dirname+'/../assistant-ui.js','utf8').includes("nav.insertAdjacentHTML"));
+console.log('PASS: floating launcher, speech fallback, Mandarin selection, transcript appending without duplicates, stop/error cleanup, and no stale updates after close.');

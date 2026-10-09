@@ -2,11 +2,11 @@
 Object.assign(translations,{'Assistant':'预约助手','Describe your booking':'描述预约需求','Prepare draft':'生成草稿','Preparing…':'正在准备…','Complete details':'补充资料','Draft only. Review before submitting.':'仅为草稿 请核对后提交','Add missing details in the booking form.':'请在预约表格中补充缺少的资料','Other available rooms':'其他可用场地','AI is unavailable. Use Book to continue.':'助手暂时不可用 请使用预约按钮','Please wait a minute before trying again.':'请稍等一分钟再试','Sign in to use the assistant.':'登录后使用预约助手','Enter your request in English or Chinese.':'可输入中文或英文','Not provided':'未填写','Available now':'目前可预约','Clash — choose another room or time.':'时段冲突 请更换场地或时间','Check recurring dates in the booking form.':'请在预约表格中核对重复日期','Request is sent to Cloudflare AI.':'需求文字将发送至 Cloudflare AI','Once':'单次','Weekly':'每周','Monthly':'每月'});
 let assistantDraft=null;
 const renderWithAssistant=render;
-render=function(){renderWithAssistant();const nav=document.getElementById('nav');nav.insertAdjacentHTML('beforeend','<button onclick="openAssistant()">'+rt('Assistant')+'</button>');};
+render=function(){renderWithAssistant();const launcher=document.getElementById('assistant-launcher');if(launcher){launcher.setAttribute('aria-label',rt('Assistant'));launcher.title=rt('Assistant');}};
 function openAssistant(){
  assistantDraft=null;
  if(!session){showModal(modalHead(rt('Assistant'))+'<div class="modal-body"><p>'+rt('Sign in to use the assistant.')+'</p></div><div class="modal-footer"><button class="primary" onclick="authForm()">'+rt('Sign in')+'</button></div>');return;}
- showModal(modalHead(rt('Assistant'))+'<form id="assistant-form" onsubmit="prepareAssistant(event)"><div class="modal-body"><label class="field"><span>'+rt('Describe your booking')+'</span><textarea name="request" required maxlength="2000" rows="4" placeholder="'+(language==='zh'?'明天晚上8点至10点 青团在新会议室查经':'Tomorrow 8–10pm, Bible study for 青团 in 新会议室')+'"></textarea></label><p class="section-note">'+rt('Enter your request in English or Chinese.')+' '+rt('Request is sent to Cloudflare AI.')+'</p><div id="assistant-error" role="alert"></div><div id="assistant-result" aria-live="polite"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="openClassicBooking()">'+rt('Book')+'</button><button class="primary" type="submit">'+rt('Prepare draft')+'</button></div></form>');
+ showModal(modalHead(rt('Assistant'))+'<form id="assistant-form" onsubmit="prepareAssistant(event)"><div class="modal-body"><label class="field"><span>'+rt('Describe your booking')+'</span><textarea name="request" required maxlength="2000" rows="4" placeholder="'+(language==='zh'?'明天晚上8点至10点 青团在新会议室查经':'Tomorrow 8–10pm, Bible study for 青团 in 新会议室')+'"></textarea></label>'+assistantVoiceHTML()+'<p class="section-note">'+rt('Enter your request in English or Chinese.')+' '+rt('Request is sent to Cloudflare AI.')+'</p><div id="assistant-error" role="alert"></div><div id="assistant-result" aria-live="polite"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="openClassicBooking()">'+rt('Book')+'</button><button class="primary" type="submit">'+rt('Prepare draft')+'</button></div></form>');
 }
 function assistantSummary(data){
  const d=data.draft,a=data.availability,rows=[['Venue',d.room?roomName(d.room):''],['Date',d.date],['Time',d.start&&d.end?d.start+'–'+d.end:''],['Purpose',d.purpose],['Fellowship',d.fellowship],['PIC',d.pic],['Repeat',rt({once:'Once',weekly:'Weekly',monthly:'Monthly'}[d.frequency])]];
@@ -19,7 +19,7 @@ function assistantSummary(data){
 }
 async function prepareAssistant(event){
  event.preventDefault();const form=event.target,button=form.querySelector('[type="submit"]'),revision=sessionRevision;
- if(button.disabled)return;button.disabled=true;button.textContent=rt('Preparing…');assistantDraft=null;document.getElementById('assistant-result').innerHTML='';document.getElementById('assistant-error').textContent='';
+ if(button.disabled||assistantRecognition)return;button.disabled=true;button.textContent=rt('Preparing…');assistantDraft=null;document.getElementById('assistant-result').innerHTML='';document.getElementById('assistant-error').textContent='';
  try{
   const {data:{session:current},error}=await db.auth.getSession();if(error||!current)throw Error('SIGN_IN');
   const response=await fetch('/api/assistant',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+current.access_token},body:JSON.stringify({message:form.elements.request.value}),signal:AbortSignal.timeout(45000)});
@@ -42,4 +42,51 @@ function useAssistantDraft(alternative=null){
  form.elements.repeat_frequency.value=d.frequency;form.elements.repeat_until.value=d.until||'';form.elements.repeat_monthly.value=d.monthly;
  form.querySelectorAll('[name="repeat_day"]').forEach(e=>{e.checked=d.weekdays.includes(Number(e.value));});repeatControls();markRequiredFields(form);
 }
+// Start after voice handlers are registered below.
+Object.assign(translations,{'Voice':'语音','Stop':'停止','Listening…':'正在聆听…','Starting microphone…':'正在开启麦克风…','Voice language':'语音语言','Review the text, then prepare your draft.':'请核对文字 再生成草稿','Use your keyboard microphone or type instead.':'请使用键盘麦克风或直接输入','Microphone access denied. You can still type.':'麦克风权限未开启 您仍可输入文字','No speech heard. Try again or type.':'未听到语音 请重试或输入文字','Voice unavailable. Use your keyboard microphone or type.':'语音暂不可用 请使用键盘麦克风或输入文字','Your browser handles voice recognition.':'语音由浏览器识别'});
+let assistantRecognition=null,assistantVoiceTimer=null;
+const micSVG='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>';
+function assistantVoiceHTML(){
+ if(!(window.SpeechRecognition||window.webkitSpeechRecognition))return '<p class="section-note">'+rt('Use your keyboard microphone or type instead.')+'</p>';
+ return '<div class="assistant-voice"><button id="assistant-mic" type="button" class="secondary" aria-pressed="false" onclick="toggleAssistantVoice()">'+micSVG+'<span>'+rt('Voice')+'</span></button><select id="assistant-voice-language" aria-label="'+rt('Voice language')+'"><option value="en-SG" '+(language==='en'?'selected':'')+'>English</option><option value="zh-CN" '+(language==='zh'?'selected':'')+'>普通话</option></select></div><p id="assistant-voice-status" class="section-note" role="status" aria-live="polite">'+rt('Your browser handles voice recognition.')+'</p>';
+}
+function voiceControls(form,active){
+ const button=document.getElementById('assistant-mic'),lang=document.getElementById('assistant-voice-language');
+ if(button){button.innerHTML=micSVG+'<span>'+rt(active?'Stop':'Voice')+'</span>';button.setAttribute('aria-pressed',String(active));}
+ if(lang)lang.disabled=active;
+ if(form){form.elements.request.readOnly=active;form.querySelector('[type="submit"]').disabled=active;}
+}
+function stopAssistantVoice(){
+ const rec=assistantRecognition;assistantRecognition=null;clearTimeout(assistantVoiceTimer);
+ if(rec){rec.onresult=rec.onend=rec.onerror=rec.onstart=null;try{rec.abort();}catch{}voiceControls(document.getElementById('assistant-form'),false);}
+}
+function toggleAssistantVoice(){
+ if(assistantRecognition){try{assistantRecognition.stop();}catch{stopAssistantVoice();}return;}
+ const FormRecognition=window.SpeechRecognition||window.webkitSpeechRecognition,form=document.getElementById('assistant-form');
+ if(!FormRecognition||!form||form.querySelector('[type="submit"]').disabled)return;
+ const status=document.getElementById('assistant-voice-status'),rec=new FormRecognition(),base=form.elements.request.value.trim();
+ assistantRecognition=rec;rec.lang=document.getElementById('assistant-voice-language').value;rec.continuous=false;rec.interimResults=true;rec.maxAlternatives=1;
+ voiceControls(form,true);status.textContent=rt('Starting microphone…');
+ let errorMessage='',heard=false;
+ const current=()=>assistantRecognition===rec&&document.getElementById('assistant-form')===form&&document.getElementById('modal').open;
+ rec.onstart=()=>{if(current())status.textContent=rt('Listening…');};
+ rec.onresult=event=>{
+  if(!current())return;let finalText='',interim='';
+  for(let i=0;i<event.results.length;i++){const result=event.results[i];if(result.isFinal)finalText+=result[0].transcript+' ';else interim+=result[0].transcript;}
+  if(finalText.trim()){heard=true;form.elements.request.value=(base+(base?' ':'')+finalText.trim()).slice(0,2000);}
+  status.textContent=interim||rt('Listening…');
+ };
+ rec.onerror=event=>{if(!current())return;errorMessage=rt(['not-allowed','service-not-allowed'].includes(event.error)?'Microphone access denied. You can still type.':event.error==='no-speech'?'No speech heard. Try again or type.':'Voice unavailable. Use your keyboard microphone or type.');status.textContent=errorMessage;stopAssistantVoice();};
+ rec.onend=()=>{if(!current())return;assistantRecognition=null;clearTimeout(assistantVoiceTimer);voiceControls(form,false);status.textContent=errorMessage||rt(heard?'Review the text, then prepare your draft.':'No speech heard. Try again or type.');};
+ assistantVoiceTimer=setTimeout(()=>{if(current()){status.textContent=rt('Voice unavailable. Use your keyboard microphone or type.');stopAssistantVoice();}},60000);
+ try{rec.start();}catch{status.textContent=rt('Voice unavailable. Use your keyboard microphone or type.');stopAssistantVoice();}
+}
+const showModalWithoutVoice=showModal;
+showModal=function(html){stopAssistantVoice();return showModalWithoutVoice(html);};
+const closeModalWithoutVoice=closeModal;
+closeModal=function(){stopAssistantVoice();return closeModalWithoutVoice();};
+const voiceDialog=document.getElementById('modal');
+voiceDialog.addEventListener?.('close',stopAssistantVoice);
+voiceDialog.addEventListener?.('cancel',stopAssistantVoice);
+document.addEventListener?.('visibilitychange',()=>{if(document.hidden)stopAssistantVoice();});
 if(!window.__TEST__)startLive();
