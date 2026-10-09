@@ -68,3 +68,12 @@ The calendar overview has no embedded booking picker. Book opens the classic dat
 - Run `node tests/booking-flow.cjs` in addition to the existing test scripts.
 
 Phone acceptance checks (requires a real device): Safari portrait/landscape, keyboard open on Purpose and PIC, date/time pickers, optional fields, Review/Back/Confirm, recurring date list, guest sign-in resume and no sideways form overflow. Automated checks use DOM mocks and do not certify physical Safari rendering.
+
+### Venue Booking Assistant
+The Assistant navigation button accepts English or Chinese requests for single, weekly, or monthly bookings. It prepares a draft and checks live occupancy; users complete missing fields and use the existing review/confirmation flow to submit. It does not approve, cancel or directly create bookings.
+
+The Worker entry point is `worker/assistant.mjs`. Wrangler adds an `AI` Workers AI binding and an `ASSETS` binding; only `/api/*` invokes the Worker first. The existing Supabase publishable URL/key are configuration values, not secret credentials. No service-role key is used. The assistant validates the caller with Supabase Auth, and calls only `state` and recurring `preview` using that caller's token. The AI receives the user's request and room catalog, not stored booking details or contact information.
+
+Workers AI usage follows the Cloudflare account's quotas/billing. No paid-plan change is performed by this deployment. If AI is unavailable or quota is exhausted, the UI offers normal Book. Burst protection is best-effort per Worker instance (six requests/user/minute), not a global billing cap. Check Cloudflare usage before wider rollout. Requests are not logged by application code. Room/date/time suggestions must be reviewed by users.
+
+Tests: `node tests/assistant-worker.mjs` and `node tests/assistant-ui.cjs`. These use mocked network/model responses; production AI quality and physical phone UX still need a signed-in acceptance test. To disable the assistant endpoint, remove the AI binding; normal calendar and booking remain available.

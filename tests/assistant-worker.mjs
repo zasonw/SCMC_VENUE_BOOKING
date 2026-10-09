@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import worker,{cleanDraft,dateValue} from '../worker/assistant.mjs';
+const rooms=[{id:1,name:'圣堂',enabled:true},{id:2,name:'副堂',enabled:true},{id:3,name:'Disabled',enabled:false}];
+assert.equal(dateValue('2026-02-30'),'');assert.equal(dateValue('2028-02-29'),'2028-02-29');
+assert.equal(cleanDraft({room:3,start:'24:00',end:'99:00'},rooms).room,null);
+const date=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+let draft={room:1,date,start:'10:00',end:'11:00',purpose:'Study',fellowship:'Youth',pic:'',frequency:'once',until:'',weekdays:[],monthly:'date'},calls=[],aiCalls=0,uid=0;
+const env={AI:{run:async()=>{aiCalls++;return {response:draft}}},SUPABASE_URL:'https://db.invalid',SUPABASE_KEY:'public',ASSETS:{fetch:()=>new Response('asset')}};
+globalThis.fetch=async(url,options)=>{
+ calls.push({url,body:options.body?JSON.parse(options.body):null});
+ if(url.endsWith('/auth/v1/user'))return Response.json({id:'user-'+uid++,email_confirmed_at:'2026-01-01'});
+ if(url.endsWith('/venue_api'))return Response.json({rooms,bookings:[{room:1,date,start:'10:30',end:'12:00',status:'confirmed',contact:'PRIVATE'}]});
+ if(url.endsWith('/venue_recurring'))return Response.json([{date,available:false,reason:'Clash'}]);
+ throw Error('Unexpected route');
+};
+const req=(body={message:'Book next week'},auth=true,origin='https://site.invalid')=>new Request('https://site.invalid/api/assistant',{method:'POST',headers:{Origin:origin,...(auth?{Authorization:'Bearer test'}:{})},body:JSON.stringify(body)});
+assert.equal((await worker.fetch(req({},false),env)).status,401);assert.equal(aiCalls,0);
+assert.equal((await worker.fetch(req({},true,'https://other.invalid'),env)).status,403);
+assert.equal((await worker.fetch(req({message:'a'.repeat(8200)}),env)).status,400);
+let data=await (await worker.fetch(req(),env)).json();assert.equal(data.availability.available,false);assert.equal(data.alternatives[0].id,2);assert(!JSON.stringify(data).includes('PRIVATE'));
+draft={...draft,frequency:'weekly',weekdays:[1],until:date};data=await (await worker.fetch(req(),env)).json();assert.equal(data.availability.kind,'series');assert.equal(data.availability.rows[0].available,false);
+assert(calls.every(c=>!c.body||['state','preview'].includes(c.body.action)));
+env.AI.run=async()=>{throw Error('quota')};assert.equal((await worker.fetch(req(),env)).status,503);
+assert.equal(await (await worker.fetch(new Request('https://site.invalid/'),env)).text(),'asset');
+console.log('PASS: authenticated drafting only, origin checks, input bounds, sanitized dates/rooms, live conflicts, alternate rooms, recurring preview, no writes and AI failure fallback.');

@@ -60,4 +60,4 @@ submitBooking=function(event,id,block){
  form.querySelector('.booking-review').scrollIntoView({block:'start'});
 }
 function confirmReviewedBooking(){const form=document.getElementById('booking-form');if(!form||repeatBusy||mutationInFlight)return;backFromReview(form);form.dataset.reviewConfirmed='yes';form.requestSubmit();delete form.dataset.reviewConfirmed;}
-if(!window.__TEST__)startLive();
+// assistant-ui.js starts the fully configured application.

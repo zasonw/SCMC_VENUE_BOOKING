@@ -2,5 +2,19 @@
   "name": "scmc-venue-booking",
   "compatibility_date": "2026-10-07",
   "workers_dev": true,
-  "assets": { "directory": "." }
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "main": "worker/assistant.mjs",
+  "ai": {
+    "binding": "AI"
+  },
+  "vars": {
+    "SUPABASE_URL": "https://lftsgwzokyzbfnejeoqn.supabase.co",
+    "SUPABASE_KEY": "sb_publishable_kXYq3rmWANHanFLvxIlqpA_Yrl43OQB"
+  }
 }

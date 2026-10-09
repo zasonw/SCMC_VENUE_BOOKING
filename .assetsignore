@@ -7,3 +7,5 @@ README.md
 wrangler.jsonc
 .gitignore
 .env*
+
+worker/
