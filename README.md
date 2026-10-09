@@ -60,3 +60,11 @@ Slot taps update the existing buttons in place, preserving scroll position and f
 Bookings require a Fellowship dropdown selection and Purpose. Other requires a fellowship name. These use the existing group and title fields, retaining historical bookings and the database's required-field constraints. `booking-ui.js` installs the interaction fixes before starting the application. Run `node tests/booking-ui.cjs` for regression checks; real Safari device verification remains a separate check.
 
 The calendar overview has no embedded booking picker. Book opens the classic date/time/room picker in a dialog. The Slots tab displays the grid directly, with no secondary Slots/Classic toggle. Editing an existing booking and continuing from selected slots still open the booking details form directly.
+
+### Booking flow update
+- Guest selections (room, date, start/end) are retained in the current tab for up to 24 hours and rechecked after sign-in. Email confirmation opened in another tab will not carry that tab's selection.
+- Booking submissions and edits show a review summary. Recurring bookings first preview availability, then review selected dates before submission. Admin room blocks retain their direct flow.
+- My bookings groups records into Upcoming, Pending, Past and Closed (cancelled, rejected or expired), preserving existing cancellation permissions.
+- Run `node tests/booking-flow.cjs` in addition to the existing test scripts.
+
+Phone acceptance checks (requires a real device): Safari portrait/landscape, keyboard open on Purpose and PIC, date/time pickers, optional fields, Review/Back/Confirm, recurring date list, guest sign-in resume and no sideways form overflow. Automated checks use DOM mocks and do not certify physical Safari rendering.

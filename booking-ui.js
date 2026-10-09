@@ -96,5 +96,5 @@ const fellowshipWithRequired=syncFellowship;
 syncFellowship=function(form){fellowshipWithRequired(form);markRequiredFields(form);};
 const repeatWithRequired=repeatControls;
 repeatControls=function(){repeatWithRequired();markRequiredFields();};
-if(!window.__TEST__)startLive();
+// booking-flow.js starts the app after the final booking controls load.
 
