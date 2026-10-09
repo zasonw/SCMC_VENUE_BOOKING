@@ -48,7 +48,7 @@ let assistantRecognition=null,assistantVoiceTimer=null;
 const micSVG='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>';
 function assistantVoiceHTML(){
  if(!(window.SpeechRecognition||window.webkitSpeechRecognition))return '<p class="section-note">'+rt('Use your keyboard microphone or type instead.')+'</p>';
- return '<div class="assistant-voice"><button id="assistant-mic" type="button" class="secondary" aria-pressed="false" onclick="toggleAssistantVoice()">'+micSVG+'<span>'+rt('Voice')+'</span></button><select id="assistant-voice-language" aria-label="'+rt('Voice language')+'"><option value="en-SG" '+(language==='en'?'selected':'')+'>English</option><option value="zh-CN" '+(language==='zh'?'selected':'')+'>普通话</option></select></div><p id="assistant-voice-status" class="section-note" role="status" aria-live="polite">'+rt('Your browser handles voice recognition.')+'</p>';
+ return '<div class="assistant-voice"><button id="assistant-mic" type="button" class="secondary" aria-pressed="false" onclick="toggleAssistantVoice()">'+micSVG+'<span>'+rt('Voice')+'</span></button><select id="assistant-voice-language" aria-label="'+rt('Voice language')+'"><option value="en-SG" '+(language==='en'?'selected':'')+'>English</option><option value="zh-CN" '+(language==='zh'?'selected':'')+'>普通话</option></select></div><p id="assistant-voice-status" class="section-note" role="status" aria-live="polite">'+rt('Speak slowly. Pauses are OK. Tap Stop when finished.')+'</p>';
 }
 function voiceControls(form,active){
  const button=document.getElementById('assistant-mic'),lang=document.getElementById('assistant-voice-language');
@@ -60,26 +60,42 @@ function stopAssistantVoice(){
  const rec=assistantRecognition;assistantRecognition=null;clearTimeout(assistantVoiceTimer);
  if(rec){rec.onresult=rec.onend=rec.onerror=rec.onstart=null;try{rec.abort();}catch{}voiceControls(document.getElementById('assistant-form'),false);}
 }
+Object.assign(translations,{'Speak slowly. Pauses are OK. Tap Stop when finished.':'请慢慢说 停顿也没关系 说完后点停止','Listening — take your time.':'正在聆听 请慢慢说','Tap Voice to add more, or prepare your draft.':'点语音可继续补充 或生成草稿','Text limit reached. Review or shorten your request.':'已达字数上限 请核对或精简需求','Voice paused. Tap Voice to continue.':'语音已暂停 请点语音继续'});
 function toggleAssistantVoice(){
- if(assistantRecognition){try{assistantRecognition.stop();}catch{stopAssistantVoice();}return;}
+ if(assistantRecognition){const active=assistantRecognition;active.finishRequested=true;clearTimeout(assistantVoiceTimer);try{active.stop();if(assistantRecognition===active)assistantVoiceTimer=setTimeout(()=>active.finish(),2500);}catch{active.finish();}return;}
  const FormRecognition=window.SpeechRecognition||window.webkitSpeechRecognition,form=document.getElementById('assistant-form');
  if(!FormRecognition||!form||form.querySelector('[type="submit"]').disabled)return;
- const status=document.getElementById('assistant-voice-status'),rec=new FormRecognition(),base=form.elements.request.value.trim();
- assistantRecognition=rec;rec.lang=document.getElementById('assistant-voice-language').value;rec.continuous=false;rec.interimResults=true;rec.maxAlternatives=1;
+ const status=document.getElementById('assistant-voice-status'),rec=new FormRecognition();
+ let base=form.elements.request.value.trim(),interim='',finalText='',rapidEnds=0,startedAt=Date.now();
+ assistantRecognition=rec;rec.lang=document.getElementById('assistant-voice-language').value;rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=1;rec.finishRequested=false;
  voiceControls(form,true);status.textContent=rt('Starting microphone…');
- let errorMessage='',heard=false;
  const current=()=>assistantRecognition===rec&&document.getElementById('assistant-form')===form&&document.getElementById('modal').open;
- rec.onstart=()=>{if(current())status.textContent=rt('Listening…');};
+ const commit=()=>{form.elements.request.value=[base,finalText.trim(),interim.trim()].filter(Boolean).join(' ').slice(0,2000);};
+ rec.finish=()=>{if(!current())return;commit();stopAssistantVoice();status.textContent=rt('Tap Voice to add more, or prepare your draft.');};
+ rec.onstart=()=>{if(current())status.textContent=rt('Listening — take your time.');};
  rec.onresult=event=>{
-  if(!current())return;let finalText='',interim='';
+  if(!current())return;finalText='';interim='';
   for(let i=0;i<event.results.length;i++){const result=event.results[i];if(result.isFinal)finalText+=result[0].transcript+' ';else interim+=result[0].transcript;}
-  if(finalText.trim()){heard=true;form.elements.request.value=(base+(base?' ':'')+finalText.trim()).slice(0,2000);}
-  status.textContent=interim||rt('Listening…');
+  form.elements.request.value=[base,finalText.trim()].filter(Boolean).join(' ').slice(0,2000);
+  status.textContent=interim||rt('Listening — take your time.');
+  if([base,finalText,interim].join(' ').length>=2000){commit();stopAssistantVoice();status.textContent=rt('Text limit reached. Review or shorten your request.');}
  };
- rec.onerror=event=>{if(!current())return;errorMessage=rt(['not-allowed','service-not-allowed'].includes(event.error)?'Microphone access denied. You can still type.':event.error==='no-speech'?'No speech heard. Try again or type.':'Voice unavailable. Use your keyboard microphone or type.');status.textContent=errorMessage;stopAssistantVoice();};
- rec.onend=()=>{if(!current())return;assistantRecognition=null;clearTimeout(assistantVoiceTimer);voiceControls(form,false);status.textContent=errorMessage||rt(heard?'Review the text, then prepare your draft.':'No speech heard. Try again or type.');};
- assistantVoiceTimer=setTimeout(()=>{if(current()){status.textContent=rt('Voice unavailable. Use your keyboard microphone or type.');stopAssistantVoice();}},60000);
- try{rec.start();}catch{status.textContent=rt('Voice unavailable. Use your keyboard microphone or type.');stopAssistantVoice();}
+ rec.onerror=event=>{
+  if(!current())return;
+  if(event.error==='no-speech'){status.textContent=rt('Listening — take your time.');return;}
+  commit();stopAssistantVoice();status.textContent=rt(['not-allowed','service-not-allowed'].includes(event.error)?'Microphone access denied. You can still type.':'Voice unavailable. Use your keyboard microphone or type.');
+ };
+ rec.onend=()=>{
+  if(!current())return;
+  if(rec.finishRequested){rec.finish();return;}
+  // Browsers can end recognition at a pause even with continuous mode enabled.
+  commit();base=form.elements.request.value.trim();finalText='';interim='';
+  rapidEnds=Date.now()-startedAt<1500?rapidEnds+1:0;
+  if(rapidEnds>=3){stopAssistantVoice();status.textContent=rt('Voice paused. Tap Voice to continue.');return;}
+  status.textContent=rt('Listening — take your time.');
+  assistantVoiceTimer=setTimeout(()=>{if(!current())return;try{startedAt=Date.now();rec.start();}catch{stopAssistantVoice();status.textContent=rt('Voice paused. Tap Voice to continue.');}},350);
+ };
+ try{rec.start();}catch{stopAssistantVoice();status.textContent=rt('Voice unavailable. Use your keyboard microphone or type.');}
 }
 const showModalWithoutVoice=showModal;
 showModal=function(html){stopAssistantVoice();return showModalWithoutVoice(html);};

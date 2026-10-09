@@ -29,3 +29,16 @@ run('toggleAssistantVoice()');recognizer.onerror({error:'not-allowed'});assert.e
 run('toggleAssistantVoice()');const oldResult=recognizer.onresult;run('closeModal()');assert(recognizer.aborted);const savedText=speechInput.value;oldResult({results:[result]});assert.equal(speechInput.value,savedText);
 assert(html.includes('id="assistant-launcher"'));assert(!fs.readFileSync(__dirname+'/../assistant-ui.js','utf8').includes("nav.insertAdjacentHTML"));
 console.log('PASS: floating launcher, speech fallback, Mandarin selection, transcript appending without duplicates, stop/error cleanup, and no stale updates after close.');
+// Simulate browsers ending recognition at a pause, then delivering a new result list.
+let restart;
+ctx.setTimeout=fn=>{restart=fn;return 1};ctx.clearTimeout=()=>{restart=null};get('modal').open=true;speechInput.value='';
+run('toggleAssistantVoice()');assert.equal(recognizer.continuous,true);
+const phrase=text=>{const r=[{transcript:text}];r.isFinal=true;return r};
+recognizer.onresult({results:[phrase('Book tomorrow')]});recognizer.onend();assert(run('assistantRecognition'));assert(speechButton.disabled);restart();
+recognizer.onresult({results:[phrase('at eight pm')]});assert.equal(speechInput.value,'Book tomorrow at eight pm');
+recognizer.onerror({error:'no-speech'});assert(run('assistantRecognition'));recognizer.onend();restart();
+recognizer.onresult({results:[phrase('in Room one')]});run('toggleAssistantVoice()');assert.equal(speechInput.value,'Book tomorrow at eight pm in Room one');assert(!speechButton.disabled);
+run('toggleAssistantVoice()');recognizer.onresult({results:[phrase('for fellowship')]});run('toggleAssistantVoice()');assert.equal(speechInput.value,'Book tomorrow at eight pm in Room one for fellowship');
+// Closing during a pending restart must never turn the microphone back on.
+run('toggleAssistantVoice()');recognizer.onend();const pendingRestart=restart;run('closeModal()');pendingRestart();assert.equal(run('assistantRecognition'),null);
+console.log('PASS: continuous listening, pause/restart accumulation, silence recovery, repeated dictation and cancelled restarts.');
