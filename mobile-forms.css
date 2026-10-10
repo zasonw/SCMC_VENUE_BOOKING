@@ -59,3 +59,17 @@ body:has(.slot-proceed) .assistant-launcher{bottom:calc(96px + env(safe-area-ins
 .assistant-voice select{min-height:44px;font-size:16px}
 #assistant-mic[aria-pressed="true"]{background:#fae9e6;color:#962d20;border-color:#cc675a}
 @media(max-width:700px){.assistant-launcher{right:14px;width:52px;height:52px}.main{padding-bottom:90px}}
+
+/* Safari's native date/time editor can exceed the input's CSS width. */
+#modal input[type="date"], #modal input[type="time"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; inline-size: 100%; max-inline-size: 100%;
+  min-width: 0; overflow: hidden;
+}
+#modal input::-webkit-datetime-edit { display: inline-flex; padding: 0; min-width: 0; max-width: 100%; }
+#modal input::-webkit-date-and-time-value { width: 100%; min-height: 1.4em; }
+@media(max-width:700px) {
+  #modal .form-grid > .time-field { grid-column: 1 / -1; }
+  #modal .booking-times { grid-template-columns: minmax(0, 1fr); }
+  #modal .field { max-width: 100%; overflow: hidden; }
+}

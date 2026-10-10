@@ -42,3 +42,8 @@ run('toggleAssistantVoice()');recognizer.onresult({results:[phrase('for fellowsh
 // Closing during a pending restart must never turn the microphone back on.
 run('toggleAssistantVoice()');recognizer.onend();const pendingRestart=restart;run('closeModal()');pendingRestart();assert.equal(run('assistantRecognition'),null);
 console.log('PASS: continuous listening, pause/restart accumulation, silence recovery, repeated dictation and cancelled restarts.');
+run("assistantDraft={room:1,date:'2026-11-01',start:'20:00',end:'22:00',frequency:'once'}");
+const followup=run("assistantRequest('Change to 9pm')");
+assert(followup.includes('2026-11-01'));assert(followup.includes('Change to 9pm'));assert(followup.includes('"frequency":"once"'));
+run('assistantDraft=null');assert.equal(run("assistantRequest('Book tomorrow')"),'Book tomorrow');
+console.log('PASS: follow-up requests retain draft context; new drafts start without previous details.');
