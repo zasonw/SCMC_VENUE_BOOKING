@@ -1,7 +1,7 @@
 'use strict';
 Object.assign(translations,{'Fellowship':'团契','Purpose':'用途','Choose fellowship':'选择团契','Other':'其他','Fellowship name':'团契名称','Please choose a fellowship and enter a purpose.':'请选择团契并填写用途'});
 let classicDateValid=true;
-const fellowshipChoices=['成年团契','青成团契','青团','少年团契','敬拜赞美团','多巴安小组','读书会','门徒课程'];
+const fellowshipChoices=['乐龄团契','成年团契','青成团契','青团','少年团契','敬拜赞美团','多巴安小组','读书会','门徒课程'];
 function fellowshipField(value=''){
  const other=!!value&&!fellowshipChoices.includes(value);
  return '<div class="field wide"><label class="field"><span>Fellowship</span><select name="fellowship_choice" required onchange="syncFellowship(this.form)"><option value="">Choose fellowship</option>'+fellowshipChoices.map(name=>'<option value="'+esc(name)+'" '+(name===value?'selected':'')+'>'+esc(name)+'</option>').join('')+'<option value="__other__" '+(other?'selected':'')+'>Other</option></select></label><label class="field fellowship-other" '+(other?'':'hidden')+'><span>Fellowship name</span><input name="fellowship_other" maxlength="120" value="'+esc(other?value:'')+'" '+(other?'required':'disabled')+' oninput="syncFellowship(this.form)"></label><input type="hidden" name="group" value="'+esc(value)+'"></div>';
