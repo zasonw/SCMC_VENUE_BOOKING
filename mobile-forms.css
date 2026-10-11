@@ -73,3 +73,12 @@ body:has(.slot-proceed) .assistant-launcher{bottom:calc(96px + env(safe-area-ins
   #modal .booking-times { grid-template-columns: minmax(0, 1fr); }
   #modal .field { max-width: 100%; overflow: hidden; }
 }
+
+.assistant-conversation { max-height: 180px; overflow-y: auto; margin-bottom: 16px; }
+.assistant-conversation p { padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; overflow-wrap: anywhere; }
+.assistant-user { background: var(--pale); margin-left: 24px; }
+.assistant-reply { background: #f4f4f0; margin-right: 24px; }
+.assistant-question { margin-bottom: 12px; }
+.assistant-choices { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.assistant-choices button { min-height: 44px; white-space: normal; }
+#assistant-result .detail-grid { margin: 16px 0; grid-template-columns: repeat(2,minmax(0,1fr)); }

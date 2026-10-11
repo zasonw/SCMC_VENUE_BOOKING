@@ -1,34 +1,97 @@
 'use strict';
 Object.assign(translations,{'Assistant':'预约助手','Describe your booking':'描述预约需求','Prepare draft':'生成草稿','Preparing…':'正在准备…','Complete details':'补充资料','Draft only. Review before submitting.':'仅为草稿 请核对后提交','Add missing details in the booking form.':'请在预约表格中补充缺少的资料','Other available rooms':'其他可用场地','AI is unavailable. Use Book to continue.':'助手暂时不可用 请使用预约按钮','Please wait a minute before trying again.':'请稍等一分钟再试','Sign in to use the assistant.':'登录后使用预约助手','Enter your request in English or Chinese.':'可输入中文或英文','Not provided':'未填写','Available now':'目前可预约','Clash — choose another room or time.':'时段冲突 请更换场地或时间','Check recurring dates in the booking form.':'请在预约表格中核对重复日期','Request is sent to Cloudflare AI.':'需求文字将发送至 Cloudflare AI','Once':'单次','Weekly':'每周','Monthly':'每月','Add details or ask to change the room, date or time.':'补充资料 或更改场地、日期和时间','New draft':'新草稿','Update draft':'更新草稿'});
-let assistantDraft=null;
-function assistantRequest(message){return assistantDraft?'Update this previous booking draft using the latest request. Keep unchanged details. Only repeat if explicitly requested. Previous draft: '+JSON.stringify(assistantDraft)+'\nLatest request: '+message:message;}
+let assistantDraft=null,assistantQuestion='',assistantBusy=false;
+function assistantRequest(message){return assistantDraft?'Update this previous booking draft using the latest request. Keep unchanged details. Only repeat if explicitly requested. Previous draft: '+JSON.stringify(assistantDraft)+'\nQuestion being answered: '+assistantQuestion+'\nLatest request: '+message:message;}
 const renderWithAssistant=render;
 render=function(){renderWithAssistant();const launcher=document.getElementById('assistant-launcher');if(launcher){launcher.setAttribute('aria-label',rt('Assistant'));launcher.title=rt('Assistant');}};
 function openAssistant(){
- assistantDraft=null;
+ assistantDraft=null;assistantQuestion='';
  if(!session){showModal(modalHead(rt('Assistant'))+'<div class="modal-body"><p>'+rt('Sign in to use the assistant.')+'</p></div><div class="modal-footer"><button class="primary" onclick="authForm()">'+rt('Sign in')+'</button></div>');return;}
- showModal(modalHead(rt('Assistant'))+'<form id="assistant-form" onsubmit="prepareAssistant(event)"><div class="modal-body"><label class="field"><span>'+rt('Describe your booking')+'</span><textarea name="request" required maxlength="1000" rows="4" placeholder="'+(language==='zh'?'明天晚上8点至10点 青团在新会议室查经':'Tomorrow 8–10pm, Bible study for 青团 in 新会议室')+'"></textarea></label>'+assistantVoiceHTML()+'<p class="section-note">'+rt('Enter your request in English or Chinese.')+' '+rt('Request is sent to Cloudflare AI.')+'</p><div id="assistant-error" role="alert"></div><div id="assistant-result" aria-live="polite"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="openClassicBooking()">'+rt('Book')+'</button><button class="primary" type="submit">'+rt('Prepare draft')+'</button></div></form>');
+ showModal(modalHead(rt('Assistant'))+'<form id="assistant-form" onsubmit="prepareAssistant(event)"><div class="modal-body"><div id="assistant-conversation" class="assistant-conversation" aria-live="polite"></div><label class="field"><span>'+rt('Describe your booking')+'</span><textarea name="request" required maxlength="1000" rows="4" placeholder="'+(language==='zh'?'明天晚上8点至10点 青团在新会议室查经':'Tomorrow 8–10pm, Bible study for 青团 in 新会议室')+'"></textarea></label>'+assistantVoiceHTML()+'<p class="section-note">'+rt('Enter your request in English or Chinese.')+' '+rt('Request is sent to Cloudflare AI.')+'</p><div id="assistant-error" role="alert"></div><div id="assistant-result" aria-live="polite"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="openClassicBooking()">'+rt('Book')+'</button><button class="primary" type="submit">'+rt('Send')+'</button></div></form>');
+}
+
+Object.assign(translations,{
+ 'Send':'发送','Which room would you like?':'您想预约哪个场地？',
+ 'Which date?':'您想预约哪一天？','What start and end time? Please include AM or PM.':'几点开始和结束？请说明早上、下午或晚上',
+ 'What is the activity or purpose?':'这次预约是什么活动？','Which fellowship?':'您属于哪个团契？',
+ 'Who is the PIC?':'负责人是谁？','Until which date should this repeat?':'重复预约到哪一天？',
+ 'Which weekdays should repeat?':'每周哪几天重复？','Choose a future time between 6am and 11pm, with the end after the start.':'请选择早上6点至晚上11点内的未来时段 结束时间须晚于开始时间',
+ 'Choose another room or change the time.':'请选择其他场地 或更改时间',
+ 'Ready to review. Nothing has been booked yet.':'可以核对预约了 目前尚未提交',
+ 'Try another time':'试试其他时间','Same room, later times':'同一场地的较晚时段',
+ 'Review and submit':'核对并提交','Today':'今天','Tomorrow':'明天','Use my name':'使用我的姓名',
+ 'Please check availability again.':'请重新检查时段','Continue':'继续'
+});
+function assistantNext(d){
+ if(!d.date)return ['date','Which date?'];
+ if(!d.start||!d.end)return ['time','What start and end time? Please include AM or PM.'];
+ if(!validBookingTime(d.date,d.start,d.end))return ['time','Choose a future time between 6am and 11pm, with the end after the start.'];
+ if(!d.room||!rooms.some(r=>r.id===d.room&&r.enabled))return ['room','Which room would you like?'];
+ if(!d.purpose)return ['purpose','What is the activity or purpose?'];
+ if(!d.fellowship)return ['fellowship','Which fellowship?'];
+ if(!d.pic)return ['pic','Who is the PIC?'];
+ if(d.frequency!=='once'&&(!d.until||d.until<d.date))return ['until','Until which date should this repeat?'];
+ if(d.frequency==='weekly'&&!d.weekdays?.length)return ['weekdays','Which weekdays should repeat?'];
+ return null;
+}
+function assistantChip(label,message){
+ return '<button type="button" class="secondary" onclick="'+esc('assistantAnswer('+JSON.stringify(message)+')')+'">'+esc(label)+'</button>';
 }
 function assistantSummary(data){
- const d=data.draft,a=data.availability,rows=[['Venue',d.room?roomName(d.room):''],['Date',d.date],['Time',d.start&&d.end?d.start+'–'+d.end:''],['Purpose',d.purpose],['Fellowship',d.fellowship],['PIC',d.pic],['Repeat',rt({once:'Once',weekly:'Weekly',monthly:'Monthly'}[d.frequency])]];
- if(d.frequency!=='once')rows.push(['Until',d.until]);
- const availability=a?.kind==='single'?rt(a.available?'Available now':'Clash — choose another room or time.'):d.frequency!=='once'?rt('Check recurring dates in the booking form.'):'';
- let html='<h3>'+rt('Draft only. Review before submitting.')+'</h3><dl class="detail-grid">'+rows.map(([label,value])=>'<div><dt>'+rt(label)+'</dt><dd>'+esc(value||rt('Not provided'))+'</dd></div>').join('')+'</dl><p>'+availability+'</p>';
- if(a?.kind==='series')html+='<div class="assistant-dates">'+a.rows.map(row=>'<p>'+esc(row.date)+' · '+rt(row.available?'Available':'Clash')+'</p>').join('')+'</div>';
- if(data.alternatives?.length)html+='<p class="section-note">'+rt('Other available rooms')+'</p><div class="availability-rooms">'+data.alternatives.map(r=>'<button type="button" class="room-choice available" onclick="useAssistantDraft('+Number(r.id)+')">'+esc(r.name)+'</button>').join('')+'</div>';
- return html+'<button type="button" class="secondary" onclick="openAssistant()">'+rt('New draft')+'</button><p class="section-note">'+rt('Add missing details in the booking form.')+'</p><button type="button" class="primary" onclick="useAssistantDraft()">'+rt('Complete details')+'</button>';
+ const d=data.draft,a=data.availability,next=assistantNext(d);
+ const rows=[['Venue',d.room?roomName(d.room):''],['Date',d.date],['Time',d.start&&d.end?d.start+'–'+d.end:''],['Purpose',d.purpose],['Fellowship',d.fellowship],['PIC',d.pic],['Repeat',rt({once:'Once',weekly:'Weekly',monthly:'Monthly'}[d.frequency]||'Once')]];
+ let question=next?next[1]:a?.kind==='single'&&a.available?'Ready to review. Nothing has been booked yet.':d.frequency!=='once'?'Check recurring dates in the booking form.':'Please check availability again.';
+ if(a?.kind==='single'&&!a.available)question='Choose another room or change the time.';
+ assistantQuestion=question;
+ let choices='';
+ if(next?.[0]==='room')choices=rooms.filter(r=>r.enabled).map(r=>assistantChip(r.name,'Use room '+r.name)).join('');
+ if(next?.[0]==='fellowship')choices=fellowshipChoices.map(f=>assistantChip(f,'Fellowship: '+f)).join('');
+ if(next?.[0]==='pic'&&me)choices=assistantChip(rt('Use my name')+' · '+me,'PIC: '+me);
+ if(next?.[0]==='date')choices=assistantChip(rt('Today'),'Date: today')+assistantChip(rt('Tomorrow'),'Date: tomorrow');
+ if(data.alternatives?.length)choices+=data.alternatives.map(r=>assistantChip(r.name,'Change room to '+r.name)).join('');
+ let html='<h3 class="assistant-question">'+rt(question)+'</h3><div class="assistant-choices">'+choices+'</div><dl class="detail-grid">'+rows.filter(([,v])=>v).map(([label,value])=>'<div><dt>'+rt(label)+'</dt><dd>'+esc(value)+'</dd></div>').join('')+'</dl>';
+ if(a?.kind==='single'&&!a.available&&d.start&&d.end){
+  // These are suggestions from the last loaded calendar, rechecked on selection.
+  const duration=Number(d.end.slice(0,2))*60+Number(d.end.slice(3))-Number(d.start.slice(0,2))*60-Number(d.start.slice(3));
+  const suggestions=[];
+  for(let m=Number(d.start.slice(0,2))*60+Number(d.start.slice(3))+30;m+duration<=1380&&suggestions.length<3;m+=30){
+   const fmt=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0'),start=fmt(m),end=fmt(m+duration);
+   if(!conflict({room:d.room,date:d.date,start,end}))suggestions.push(assistantChip(start+'–'+end,'Change time to '+start+'–'+end+' (24-hour time)'));
+  }
+  if(suggestions.length)html+='<p>'+rt('Same room, later times')+'</p><div class="assistant-choices">'+suggestions.join('')+'</div>';
+ }
+ if(!next&&(a?.kind==='single'&&a.available||d.frequency!=='once'))html+='<button type="button" class="primary" onclick="reviewAssistantDraft()">'+rt('Review and submit')+'</button>';
+ return html+'<div class="assistant-choices"><button type="button" class="secondary" onclick="useAssistantDraft()">'+rt('Complete details')+'</button><button type="button" class="secondary" onclick="openAssistant()">'+rt('New draft')+'</button></div>';
+}
+function assistantAnswer(message){
+ const form=document.getElementById('assistant-form');if(!form||assistantBusy||assistantRecognition)return;
+ form.elements.request.value=message;form.requestSubmit();
+}
+function reviewAssistantDraft(){
+ if(assistantBusy||assistantRecognition||!assistantDraft||assistantNext(assistantDraft))return;
+ useAssistantDraft();
+ const form=document.getElementById('booking-form');
+ // Existing flow revalidates permissions and conflicts, and requires explicit confirmation.
+ if(form)form.requestSubmit();
 }
 async function prepareAssistant(event){
  event.preventDefault();const form=event.target,button=form.querySelector('[type="submit"]'),revision=sessionRevision;
- if(button.disabled||assistantRecognition)return;button.disabled=true;button.textContent=rt('Preparing…');document.getElementById('assistant-result').innerHTML='';document.getElementById('assistant-error').textContent='';
+ if(button.disabled||assistantRecognition||assistantBusy)return;assistantBusy=true;button.disabled=true;button.textContent=rt('Preparing…');document.getElementById('assistant-result').hidden=true;document.getElementById('assistant-error').textContent='';
+ const message=form.elements.request.value;
  try{
   const {data:{session:current},error}=await db.auth.getSession();if(error||!current)throw Error('SIGN_IN');
-  const response=await fetch('/api/assistant',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+current.access_token},body:JSON.stringify({message:assistantRequest(form.elements.request.value)}),signal:AbortSignal.timeout(45000)});
+  const requestMessage=assistantRequest(form.elements.request.value);if(requestMessage.length>2000)throw Error('TOO_LONG');
+  const response=await fetch('/api/assistant',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+current.access_token},body:JSON.stringify({message:requestMessage}),signal:AbortSignal.timeout(45000)});
   const data=await response.json();if(!response.ok)throw Error(data.error||'AI_UNAVAILABLE');
   if(revision!==sessionRevision||document.getElementById('assistant-form')!==form||!document.getElementById('modal').open)return;
-  assistantDraft=data.draft;form.elements.request.value='';form.elements.request.placeholder=rt('Add details or ask to change the room, date or time.');document.getElementById('assistant-result').innerHTML=assistantSummary(data);
- }catch(error){if(revision===sessionRevision&&document.getElementById('assistant-form')===form)document.getElementById('assistant-error').textContent=rt(error.message==='SIGN_IN'?'Sign in to use the assistant.':error.message==='RATE_LIMIT'?'Please wait a minute before trying again.':'AI is unavailable. Use Book to continue.');}
- finally{button.disabled=false;button.textContent=rt(assistantDraft?'Update draft':'Prepare draft');}
+  assistantDraft=data.draft;
+  const conversation=document.getElementById('assistant-conversation');
+  conversation.insertAdjacentHTML('beforeend','<p class="assistant-user">'+esc(message)+'</p>');
+  form.elements.request.value='';form.elements.request.placeholder=rt('Add details or ask to change the room, date or time.');document.getElementById('assistant-result').innerHTML=assistantSummary(data);
+  conversation.insertAdjacentHTML('beforeend','<p class="assistant-reply">'+rt(assistantQuestion)+'</p>');
+  document.getElementById('assistant-result').scrollIntoView({block:'nearest',behavior:'smooth'});
+ }catch(error){if(revision===sessionRevision&&document.getElementById('assistant-form')===form)document.getElementById('assistant-error').textContent=rt(error.message==='SIGN_IN'?'Sign in to use the assistant.':error.message==='TOO_LONG'?'Text limit reached. Review or shorten your request.':error.message==='RATE_LIMIT'?'Please wait a minute before trying again.':'AI is unavailable. Use Book to continue.');}
+ finally{if(document.getElementById('assistant-form')===form)document.getElementById('assistant-result').hidden=false;assistantBusy=false;button.disabled=false;button.textContent=rt('Send');}
 }
 function useAssistantDraft(alternative=null){
  if(!assistantDraft||!session)return;
