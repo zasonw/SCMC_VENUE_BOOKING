@@ -82,3 +82,9 @@ body:has(.slot-proceed) .assistant-launcher{bottom:calc(96px + env(safe-area-ins
 .assistant-choices { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
 .assistant-choices button { min-height: 44px; white-space: normal; }
 #assistant-result .detail-grid { margin: 16px 0; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.edit-check { display:flex; gap:10px; align-items:center; min-height:44px; }
+#modal .edit-check input { width:22px; height:22px; min-height:22px; flex-shrink:0; }
+#occurrence-preview { margin-top:20px; }
+#occurrence-preview .repeat-date { align-items:flex-start; }
+#modal .repeat-date input { width:22px; height:22px; min-height:22px; flex-shrink:0; }
+#occurrence-form input:disabled,#occurrence-form select:disabled,#occurrence-form textarea:disabled { opacity:.55; }

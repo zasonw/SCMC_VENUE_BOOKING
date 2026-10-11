@@ -169,4 +169,4 @@ const voiceDialog=document.getElementById('modal');
 voiceDialog.addEventListener?.('close',stopAssistantVoice);
 voiceDialog.addEventListener?.('cancel',stopAssistantVoice);
 document.addEventListener?.('visibilitychange',()=>{if(document.hidden)stopAssistantVoice();});
-if(!window.__TEST__)startLive();
+// member-tools.js starts the application after profile and recurring-edit hooks.

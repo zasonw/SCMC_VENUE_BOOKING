@@ -2,6 +2,7 @@
 // Only the browser-safe publishable key belongs here. Never use a service-role key.
 const SUPABASE_URL='https://lftsgwzokyzbfnejeoqn.supabase.co';
 const SUPABASE_KEY='sb_publishable_kXYq3rmWANHanFLvxIlqpA_Yrl43OQB';
+let bookingProfile={};
 let db, session=null, liveReady=false, refreshInFlight=false, mutationInFlight=false;
 let refreshPromise=null,refreshAgain=false,sessionRevision=0;
 Object.assign(translations,{
@@ -48,7 +49,7 @@ function refreshLive(){
     const {data:{session:current},error}=await db.auth.getSession();if(error)throw error;
     const data=await api('state');
     if(revision!==sessionRevision){refreshAgain=true;continue;}
-    session=current;rooms=data.rooms;bookings=data.bookings.map(b=>({...b,attendance:b.attendance??''}));
+    session=current;bookingProfile=session?(data.profile||{}):{};rooms=data.rooms;bookings=data.bookings.map(b=>({...b,attendance:b.attendance??''}));
     role=session&&data.admin?'admin':'member';me=data.name||'';liveReady=true;
     if(view==='admin'&&role!=='admin')view='schedule';render();liveStatus('Shared calendar');
    }catch(error){if(revision!==sessionRevision){refreshAgain=true;continue;}liveReady=false;liveStatus(friendlyError(error),true);}
@@ -57,7 +58,7 @@ function refreshLive(){
  return refreshPromise;
 }
 function clearAccountState(nextSession=null){
- sessionRevision++;session=nextSession;liveReady=false;role='member';me='';bookings=[];slotSelection=null;view='schedule';closeModal();render();
+ sessionRevision++;bookingProfile={};session=nextSession;liveReady=false;role='member';me='';bookings=[];slotSelection=null;view='schedule';closeModal();render();
 }
 const bookingFormBase=openForm;
 openForm=function(...args){if(!session)return authForm();if(!liveReady)return toast('Please wait for the calendar to connect.');bookingFormBase(...args);const field=document.querySelector('#booking-form [name="pic"]');if(field&&!args[1])field.value=me;};
