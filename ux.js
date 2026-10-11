@@ -22,6 +22,7 @@ const uxRenderBase=render;
 render=function(){
  uxRenderBase();
  document.querySelector('.brand').textContent='SCMC';
+ if(!document.querySelector('.scmc-brand-logo'))document.querySelector('.brand').insertAdjacentHTML('afterend','<img class="scmc-brand-logo" src="/scmc-logo.png?v=2" alt="SCMC church logo" width="88" height="88">');
  document.querySelector('.brand-sub').textContent=rt('Venue booking');
  const titles={schedule:['Venue calendar','Choose a date or open Slots to book.'],mine:['Your bookings','Manage your upcoming dates.'],rooms:['Rooms','Find a room for your gathering.'],admin:['Requests','Review bookings and manage spaces.']};
  const [title,subtitle]=titles[view]||titles.schedule;

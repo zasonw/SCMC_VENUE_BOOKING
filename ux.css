@@ -154,3 +154,6 @@ button { touch-action:manipulation; }
  .ux-month-picker { display:inline-flex; padding:6px 10px; margin-left:-10px; border:1px solid var(--line); border-radius:8px; font:inherit; }
  .ux-month-picker:hover { background:var(--pale); }
 }
+
+.scmc-brand-logo { display:block; width:88px; height:88px; object-fit:contain; margin:14px 0 2px; border-radius:8px; }
+@media(max-width:999px) { .scmc-brand-logo { display:none; } }

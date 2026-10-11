@@ -62,7 +62,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  const refresh=await page.locator('.ux-header-actions .secondary').boundingBox();
  const book=await page.locator('.ux-header-actions .primary').boundingBox();
  assert(Math.abs(refresh.y-book.y)<4,'header actions aligned');
- assert.equal(await page.locator('link[rel="icon"]').getAttribute('href'),'/scmc-logo.png?v=1');
+ assert.equal(await page.locator('link[rel="icon"]').getAttribute('href'),'/favicon.ico?v=2');
  await page.screenshot({path:'/tmp/venue-ux-shots/desktop-header.png'});
  await page.evaluate(()=>{session={user:{id:'fixture'}};role='admin';render();openMonthPicker()});
  await page.locator('[name=year]').fill('2028');await page.locator('[name=month]').selectOption('02');
