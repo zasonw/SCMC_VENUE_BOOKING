@@ -22,13 +22,27 @@ function updateSlotSelection(){
  document.querySelectorAll('.slot-proceed-actions').forEach(el=>{el.innerHTML=(slotSelection?'<button class="secondary" onclick="clearSlotSelection()">'+translateText('Clear')+'</button>':'')+'<button class="primary" '+(slotSelection?'':'disabled')+' onclick="proceedSlots()">'+translateText('Proceed')+'</button>';});
 }
 function clearSlotSelection(){slotSelection=null;updateSlotSelection();}
+// Scroll only the grid, never the page, and never auto-select a booking.
+function jumpToAvailableSlot(grid=document.querySelector('.slot-scroll')){
+ if(!grid)return;
+ const button=[...grid.querySelectorAll('.time-slot.available:not(:disabled)')].find(b=>
+  validBookingTime(selected,slotTime(Number(b.dataset.slot)),slotTime(Number(b.dataset.slot)+1)));
+ const note=grid.parentElement.querySelector('.slot-availability-message');
+ if(note)note.hidden=!!button;
+ if(!button)return;
+ const row=button.closest('tr'),head=grid.querySelector('thead');
+ grid.scrollTop+=row.getBoundingClientRect().top-grid.getBoundingClientRect().top-(head?.getBoundingClientRect().height||0);
+ const timeWidth=grid.querySelector('tbody th')?.getBoundingClientRect().width||84;
+ const cell=button.closest('td');
+ grid.scrollLeft+=cell.getBoundingClientRect().left-grid.getBoundingClientRect().left-timeWidth;
+}
 // Preserve position on periodic data refreshes, but reset it when date/room filters change.
 const renderPreservingSlots=render;
 render=function(){
  const positions=[...document.querySelectorAll('.slot-scroll')].map(el=>({key:el.dataset.gridKey,top:el.scrollTop,left:el.scrollLeft}));
  if(slotSelection&&!validSlotSelection())slotSelection=null;
  renderPreservingSlots();
- document.querySelectorAll('.slot-scroll').forEach(el=>{const p=positions.find(p=>p.key===el.dataset.gridKey);if(p){el.scrollTop=p.top;el.scrollLeft=p.left;}});
+ document.querySelectorAll('.slot-scroll').forEach(el=>{const p=positions.find(p=>p.key===el.dataset.gridKey);if(p){el.scrollTop=p.top;el.scrollLeft=p.left;}else{jumpToAvailableSlot(el);}});
  liveStatus(lastSyncText,lastSyncError);
 };
 const validateBookingFields=submitBooking;

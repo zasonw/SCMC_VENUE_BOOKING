@@ -134,3 +134,23 @@ button { touch-action:manipulation; }
  .side-note { display:none; }
  .main { min-width:0; }
 }
+
+/* Keep account utilities together, and calendar actions beside the title. */
+.topbar { margin-bottom:20px; }
+.header { align-items:center; margin-bottom:8px; }
+.ux-header-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.connection-bar { margin:0 0 16px; min-height:18px; }
+.ux-slot-jump { display:flex; align-items:center; gap:12px; padding:0 16px 10px; flex-wrap:wrap; }
+.slot-availability-message { font-size:13px; color:var(--muted); }
+@media(max-width:700px) {
+ .ux-header-actions { gap:6px; }
+ .ux-header-actions button { padding:9px 10px; font-size:12px; }
+ .header h1 { font-size:22px; }
+}
+
+.ux-month-picker { display:none; }
+@media(min-width:768px) {
+ .ux-month-static { display:none; }
+ .ux-month-picker { display:inline-flex; padding:6px 10px; margin-left:-10px; border:1px solid var(--line); border-radius:8px; font:inherit; }
+ .ux-month-picker:hover { background:var(--pale); }
+}

@@ -10,7 +10,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
   const name=url.pathname==='/'?'index.html':url.pathname.slice(1);
   const file=path.join(__dirname,'..',name);
   if(!fs.existsSync(file))return route.fulfill({status:404,body:''});
-  route.fulfill({body:fs.readFileSync(file),contentType:name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html'});
+  route.fulfill({body:fs.readFileSync(file),contentType:name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.png')?'image/png':'text/html'});
  });
  await page.goto('https://ui.test');
  await page.evaluate(()=>{
@@ -40,5 +40,36 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  await noPageOverflow();await page.screenshot({path:'/tmp/venue-ux-shots/mobile-chinese.png'});
  await page.setViewportSize({width:1440,height:1000});await page.evaluate(()=>{role='admin';render()});await noPageOverflow();
  await page.screenshot({path:'/tmp/venue-ux-shots/desktop.png'});
+ // Fixed Malaysia afternoon: skip elapsed slots and an occupied next slot.
+ await page.evaluate(()=>{
+  closeModal();setLanguage('en');session=null;role='member';
+  offset=stamp('2026-10-11','18:23')-Date.now();selected='2026-10-11';month='2026-10';
+  roomFilter='1';mode='calendar';render();
+  bookings=[{id:'held',room:1,date:selected,start:'18:30',end:'19:00',status:'confirmed'}];
+  setMode('venues');
+ });
+ assert(await page.locator('.time-slot[data-slot="24"]').isDisabled());
+ assert(await page.evaluate(()=>document.querySelector('.slot-scroll').scrollTop>0));
+ const slot=await page.locator('.time-slot[data-slot="26"]').boundingBox();
+ const head=await page.locator('.slot-table thead th').first().boundingBox();
+ assert(slot.y>=head.y+head.height-1 && slot.y<head.y+head.height+150,'next free slot should be visible below header');
+ const initialScroll=await page.locator('.slot-scroll').evaluate(e=>e.scrollTop);
+ await page.evaluate(()=>{pickSlot(1,26);pickSlot(1,27);render()});
+ assert.equal(await page.locator('.slot-scroll').evaluate(e=>e.scrollTop),initialScroll,'selection/refresh must preserve scroll');
+ await page.evaluate(()=>selectDay('2026-10-10'));
+ assert(await page.locator('.slot-availability-message').isVisible(),'fully unavailable date explains empty availability');
+ await page.evaluate(()=>{mode='calendar';render()});
+ const refresh=await page.locator('.ux-header-actions .secondary').boundingBox();
+ const book=await page.locator('.ux-header-actions .primary').boundingBox();
+ assert(Math.abs(refresh.y-book.y)<4,'header actions aligned');
+ assert.equal(await page.locator('link[rel="icon"]').getAttribute('href'),'/scmc-logo.png?v=1');
+ await page.screenshot({path:'/tmp/venue-ux-shots/desktop-header.png'});
+ await page.evaluate(()=>{session={user:{id:'fixture'}};role='admin';render();openMonthPicker()});
+ await page.locator('[name=year]').fill('2028');await page.locator('[name=month]').selectOption('02');
+ await page.locator('#modal button[type=submit]').click();
+ assert.equal(await page.evaluate(()=>month),'2028-02');
+ await page.setViewportSize({width:820,height:1180});assert(await page.locator('.ux-month-picker').isVisible());
+ await page.setViewportSize({width:390,height:844});assert(!await page.locator('.ux-month-picker').isVisible());
+ await page.evaluate(()=>openMonthPicker());assert(!await page.locator('#modal').isVisible());
  assert.deepEqual(errors,[]);await browser.close();console.log('PASS: 390px/1440px layouts, no page/modal overflow, mobile navigation and assistant separation, collapsible edits, Chinese controls and no browser errors.');
 })().catch(e=>{console.error(e);process.exitCode=1});

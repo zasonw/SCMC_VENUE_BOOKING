@@ -1,6 +1,6 @@
 'use strict';
 Object.assign(translations,{
- 'Account':'账号','Venue booking':'场地预约','Choose a date or open Slots to book.':'选择日期 或打开时段直接预约',
+ 'Next available':'下个可用时段','No available slots on this date.':'此日期没有可用时段', 'Account':'账号','Venue booking':'场地预约','Choose a date or open Slots to book.':'选择日期 或打开时段直接预约',
  'Your bookings':'我的预约','Manage your upcoming dates.':'查看和管理未来预约','Rooms':'场地',
  'Find a room for your gathering.':'查看场地和可用时段','Requests':'审批',
  'Review bookings and manage spaces.':'审批预约和管理场地',
@@ -30,11 +30,29 @@ render=function(){
  document.querySelectorAll('#nav button').forEach(b=>{if(b.classList.contains('active'))b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
  document.getElementById('account-controls').insertAdjacentHTML('beforeend','<button class="secondary ux-account-button" onclick="openAccountMenu()">'+rt('Account')+'</button>');
 };
+Object.assign(translations,{'Choose month':'选择月份','Month':'月份','Year':'年份','Go':'前往'});
+function adminMonthPickerAllowed(){return role==='admin'&&!!session&&window.matchMedia('(min-width:768px)').matches;}
+function openMonthPicker(){
+ if(!adminMonthPickerAllowed())return;
+ const [year,value]=month.split('-');
+ showModal(modalHead(rt('Choose month'))+'<form onsubmit="goToMonth(event)"><div class="modal-body form-grid"><label class="field"><span>'+rt('Month')+'</span><select name="month" required>'+Array.from({length:12},(_,i)=>{const m=String(i+1).padStart(2,'0');return '<option value="'+m+'" '+(m===value?'selected':'')+'>'+new Intl.DateTimeFormat(language==='zh'?'zh-CN':'en',{month:'long'}).format(new Date(2026,i,1))+'</option>';}).join('')+'</select></label><label class="field"><span>'+rt('Year')+'</span><input name="year" type="number" min="1900" max="2100" step="1" required value="'+year+'"></label></div><div class="modal-footer"><button class="secondary" type="button" onclick="closeModal()">'+rt('Cancel')+'</button><button class="primary" type="submit">'+rt('Go')+'</button></div></form>');
+}
+function goToMonth(event){
+ event.preventDefault();if(!adminMonthPickerAllowed())return;
+ const f=event.target,y=f.elements.year.value,m=f.elements.month.value;
+ if(!/^\d{4}$/.test(y)||+y<1900||+y>2100||! /^(0[1-9]|1[0-2])$/.test(m))return;
+ month=y+'-'+m;selected=month+'-01';slotSelection=null;closeModal();render();
+}
+const uxCalendarHTML=calendarHTML;
+calendarHTML=function(){
+ const html=uxCalendarHTML();if(role!=='admin'||!session)return html;
+ return html.replace(/<h2>(.*?)<\/h2>/,'<h2><span class="ux-month-static">$1</span><button class="ux-month-picker" onclick="openMonthPicker()" aria-haspopup="dialog">$1</button></h2>');
+};
 const uxSlotGrid=slotGridHTML;
 slotGridHTML=function(){
  let html=uxSlotGrid();
  const controls='<div class="ux-day-controls"><button type="button" class="secondary" onclick="shiftDay(-1)">'+rt('Previous day')+'</button><button type="button" class="secondary" onclick="selectDay(dayKey())">'+rt('Today')+'</button><button type="button" class="secondary" onclick="shiftDay(1)">'+rt('Next day')+'</button></div><p class="ux-slot-hint">'+rt('Tap a start slot, then an end slot.')+' '+rt('Swipe to see more rooms.')+'</p>';
- return html.replace('<div class="slot-legend">',controls+'<div class="slot-legend">');
+ return html.replace('<div class="slot-legend">',controls+'<div class="ux-slot-jump"><button type="button" class="secondary" onclick="jumpToAvailableSlot()">'+rt('Next available')+'</button><span class="slot-availability-message" role="status" hidden>'+rt('No available slots on this date.')+'</span></div><div class="slot-legend">');
 };
 function uxSection(title,n,fields){
  const section=document.createElement('section');section.className='ux-form-section wide';
