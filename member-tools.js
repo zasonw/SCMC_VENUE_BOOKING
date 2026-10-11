@@ -30,7 +30,7 @@ const renderWithProfile=render;
 render=function(){renderWithProfile();if(session)document.getElementById('account-controls').insertAdjacentHTML('afterbegin','<button class="secondary" onclick="openProfile()">'+rt('My profile')+'</button>');};
 function openProfile(){
  if(!session)return authForm();
- showModal(modalHead(rt('My profile'))+'<form id="profile-form" onsubmit="saveProfile(event)"><div class="modal-body"><p class="section-note">'+rt('Saved defaults are suggestions. You can change them for each booking.')+'</p><div class="form-grid"><label class="field wide"><span>'+rt('Name')+' *</span><input name="name" required maxlength="120" autocomplete="name" value="'+esc(bookingProfile.name||me)+'"></label>'+fellowshipField(bookingProfile.fellowship||'')+'<label class="field wide"><span>'+rt('PIC contact')+' <small>'+rt('Optional')+'</small></span><input name="contact" maxlength="120" autocomplete="tel" value="'+esc(bookingProfile.contact||'')+'"></label></div><div class="form-error" id="form-error" role="alert"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="closeModal()">'+rt('Cancel')+'</button><button class="primary">'+rt('Save')+'</button></div></form>');
+ showModal(modalHead(rt('My profile'))+'<form id="profile-form" onsubmit="saveProfile(event)"><div class="modal-body"><p class="section-note">'+rt('Saved defaults are suggestions. You can change them for each booking.')+'</p><div class="form-grid"><label class="field wide"><span>'+rt('Name')+'</span><input name="name" required maxlength="120" autocomplete="name" value="'+esc(bookingProfile.name||me)+'"></label>'+fellowshipField(bookingProfile.fellowship||'')+'<label class="field wide"><span>'+rt('PIC contact')+' <small>'+rt('Optional')+'</small></span><input name="contact" maxlength="120" autocomplete="tel" value="'+esc(bookingProfile.contact||'')+'"></label></div><div class="form-error" id="form-error" role="alert"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="closeModal()">'+rt('Cancel')+'</button><button class="primary">'+rt('Save')+'</button></div></form>');
  const f=document.getElementById('profile-form');f.elements.fellowship_choice.required=false;markRequiredFields(f);
 }
 async function saveProfile(event){
@@ -41,7 +41,7 @@ async function persistProfile(payload,form,close=false){
  if(mutationInFlight)return;const revision=sessionRevision;mutationInFlight=true;
  const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
  try{const profile=await memberRpc('venue_profile','save',payload);if(revision!==sessionRevision)return;bookingProfile=profile;if(close&&document.getElementById('profile-form')===form)closeModal();toast('Profile saved.');}
- catch(error){if(revision===sessionRevision)repeatError(error);}
+ catch(error){if(revision===sessionRevision&&document.getElementById(form.id)===form&&document.getElementById('modal').open)repeatError(error);}
  finally{mutationInFlight=false;buttons.forEach(b=>b.disabled=false);}
 }
 function fillFellowship(form,value){
@@ -67,7 +67,15 @@ openForm=function(room=null,id=null,start=null,block=false){
  const b=id?bookings.find(x=>x.id===id):null;
  if(b?.series_id)return canManageOccurrence(b)?openOccurrenceEditor(id):toast('Choose an upcoming active occurrence.');
  formWithDefaults(room,id,start,block);
- const f=document.getElementById('booking-form');if(!f||!session||!liveReady||id||block)return;
+ const f=document.getElementById('booking-form');if(!f||!session||!liveReady)return;
+ f.dataset.bookedBy=b?.booked_by||me;
+ if(block)return;
+ if(id){
+  f.dataset.suggestedPic=f.elements.pic.value;f.dataset.suggestedContact='yes';
+  f.elements.pic.addEventListener('input',()=>clearOtherPicContact(f));
+  f.elements.contact.addEventListener('input',()=>{f.dataset.suggestedContact='no';});
+  return;
+ }
  f.elements.pic.value=bookingProfile.name||me;
  f.elements.contact.value=bookingProfile.contact||'';
  fillFellowship(f,bookingProfile.fellowship||'');
@@ -103,9 +111,25 @@ function occurrenceControl(key,label,type,value){
 function openOccurrenceEditor(id,scope='one',operation='edit'){
  const b=bookings.find(x=>x.id===id);if(!canManageOccurrence(b))return toast('Choose an upcoming active occurrence.');
  occurrencePreview=null;
- showModal(modalHead(rt(operation==='edit'?'Edit occurrences':'Skip occurrences'),esc(b.title)+' · '+esc(b.date))+'<form id="occurrence-form" onsubmit="previewOccurrence(event)"><div class="modal-body"><label class="field"><span>'+rt('Apply to')+'</span><select name="scope" onchange="openOccurrenceEditor(\''+id+'\',this.value,\''+operation+'\')"><option value="one" '+(scope==='one'?'selected':'')+'>'+rt('This date')+'</option><option value="future" '+(scope==='future'?'selected':'')+'>'+rt('This and future dates')+'</option></select></label><p class="section-note">'+rt('Cancelled dates stay cancelled. Past dates are unchanged.')+'</p>'+(operation==='edit'?'<p class="section-note">'+rt('Only checked fields will change.')+' '+rt('Changes to venue, date or time restart approval.')+'</p><div class="form-grid">'+occurrenceFields.filter(([key])=>key!=='date'||scope==='one').map(([key,label,type])=>occurrenceControl(key,label,type,b[key])).join('')+'</div>':'')+'<div class="form-error" id="form-error" role="alert"></div><div id="occurrence-preview" aria-live="polite"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="openDetail(\''+id+'\')">'+rt('Back')+'</button><button class="primary" type="submit">'+rt('Preview changes')+'</button></div></form>');
+ showModal(modalHead(rt(operation==='edit'?'Edit occurrences':'Skip occurrences'),esc(b.title)+' · '+esc(b.date))+'<form id="occurrence-form" onsubmit="previewOccurrence(event)"><div class="modal-body"><label class="field"><span>'+rt('Apply to')+'</span><select name="scope" onchange="changeOccurrenceScope(this.form,this.value)"><option value="one" '+(scope==='one'?'selected':'')+'>'+rt('This date')+'</option><option value="future" '+(scope==='future'?'selected':'')+'>'+rt('This and future dates')+'</option></select></label><p class="section-note">'+rt('Cancelled dates stay cancelled. Past dates are unchanged.')+'</p>'+(operation==='edit'?'<p class="section-note">'+rt('Only checked fields will change.')+' '+rt('Changes to venue, date or time restart approval.')+'</p><div class="form-grid">'+occurrenceFields.filter(([key])=>key!=='date'||scope==='one').map(([key,label,type])=>occurrenceControl(key,label,type,b[key])).join('')+'</div>':'')+'<div class="form-error" id="form-error" role="alert"></div><div id="occurrence-preview" aria-live="polite"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="openDetail(\''+id+'\')">'+rt('Back')+'</button><button class="primary" type="submit">'+rt('Preview changes')+'</button></div></form>');
  const f=document.getElementById('occurrence-form');f.dataset.id=id;f.dataset.operation=operation;
- f.addEventListener('input',e=>{if(e.target.name!=='edit_id')invalidateOccurrencePreview();else updateOccurrenceSelection();});
+ f.addEventListener('input',e=>{if(e.target.name==='value_contact')delete f.dataset.autoContact;if(e.target.name!=='edit_id')invalidateOccurrencePreview();else updateOccurrenceSelection();});
+}
+function changeOccurrenceScope(form,scope){
+ const draft=JSON.parse(form.dataset.scopeDraft||'{}');
+ for(const [key]of occurrenceFields){
+  const control=form.elements['value_'+key],check=form.elements['change_'+key];
+  if(control&&check)draft[key]={value:control.value,checked:check.checked};
+ }
+ openOccurrenceEditor(form.dataset.id,scope,form.dataset.operation);
+ const next=document.getElementById('occurrence-form');if(!next||next===form)return;
+ next.dataset.scopeDraft=JSON.stringify(draft);if(form.dataset.autoContact)next.dataset.autoContact=form.dataset.autoContact;
+ for(const [key,item]of Object.entries(draft)){
+  const control=next.elements['value_'+key],check=next.elements['change_'+key];if(!control||!check)continue;
+  control.value=item.value;check.checked=item.checked;control.disabled=!item.checked;
+  control.required=item.checked&&['room','date','start','end','title','group','pic'].includes(key);
+  check.parentElement.querySelector('span').textContent=rt(occurrenceFields.find(f=>f[0]===key)[1])+(control.required?' *':'');
+ }
 }
 function invalidateOccurrencePreview(){occurrencePreview=null;const box=document.getElementById('occurrence-preview');if(box)box.innerHTML='';}
 function toggleOccurrenceField(form,key){
@@ -113,7 +137,14 @@ function toggleOccurrenceField(form,key){
  input.required=checked&&['room','date','start','end','title','group','pic'].includes(key);
  const label=form.elements['change_'+key].parentElement.querySelector('span');label.textContent=rt(occurrenceFields.find(f=>f[0]===key)[1])+(input.required?' *':'');
  // A new PIC must not inherit the previous PIC's contact.
- if(key==='pic'&&checked){form.elements.change_contact.checked=true;form.elements.value_contact.disabled=false;form.elements.value_contact.value='';}
+ if(key==='contact')delete form.dataset.autoContact;
+ if(key==='pic'&&checked){
+  form.dataset.autoContact=JSON.stringify({checked:form.elements.change_contact.checked,value:form.elements.value_contact.value});
+  form.elements.change_contact.checked=true;form.elements.value_contact.disabled=false;form.elements.value_contact.value='';
+ }else if(key==='pic'&&form.dataset.autoContact){
+  const previous=JSON.parse(form.dataset.autoContact);delete form.dataset.autoContact;
+  form.elements.change_contact.checked=previous.checked;form.elements.value_contact.disabled=!previous.checked;form.elements.value_contact.value=previous.value;
+ }
  invalidateOccurrencePreview();
 }
 function occurrencePayload(form){
@@ -126,6 +157,7 @@ function selectedOccurrenceRows(form){return (occurrencePreview?.rows||[]).filte
 async function previewOccurrence(event){
  event.preventDefault();const form=event.target;if(occurrenceBusy||mutationInFlight)return;
  const payload=occurrencePayload(form);if(payload.operation==='edit'&&!Object.keys(payload.patch).length)return repeatError(Error('Choose at least one change.'));
+ invalidateOccurrencePreview();const errorBox=document.getElementById('form-error');if(errorBox){errorBox.textContent='';errorBox.style.display='none';}
  const revision=sessionRevision,signature=JSON.stringify(payload);occurrenceBusy=true;form.querySelector('[type="submit"]').disabled=true;
  try{
   const rows=await memberRpc('venue_series_edit','preview',payload);
@@ -206,7 +238,7 @@ function assistantOtherPerson(){
  if(assistantProfileData){assistantProfileData.draft=assistantDraft;document.getElementById('assistant-result').innerHTML=assistantSummary(assistantProfileData);}
 }
 const profileReviewRows=reviewRows;
-reviewRows=function(form){return '<div><dt>'+rt('Booked by')+'</dt><dd>'+esc(me)+'</dd></div>'+profileReviewRows(form);};
+reviewRows=function(form){return '<div><dt>'+rt('Booked by')+'</dt><dd>'+esc(form.dataset.bookedBy||me)+'</dd></div>'+profileReviewRows(form);};
 openSeries=function(id){
  const list=bookings.filter(b=>b.series_id===id).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
  if(!session||!list.length||!(role==='admin'||list.some(b=>b.owner==='member')))return;

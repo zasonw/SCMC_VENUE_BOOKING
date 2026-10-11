@@ -46,6 +46,38 @@ const field=(form,name)=>w.document.getElementById(form).elements[name];
  run("openMyRecurring()");assert(w.document.getElementById('modal').textContent.includes('Study'));
  run("chooseRecurringAction(bookings[0].id)");assert(w.document.getElementById('modal').textContent.includes('This and future dates'));
  run("openSeries('s1')");assert(!w.document.getElementById('modal').textContent.includes('Confirmed dates need an admin'));
+
+ // Reverting a PIC change must not leave an accidental contact deletion selected.
+ run("openOccurrenceEditor(bookings[0].id,'one')");
+ field('occurrence-form','change_pic').checked=true;run("toggleOccurrenceField(document.getElementById('occurrence-form'),'pic')");
+ field('occurrence-form','change_pic').checked=false;run("toggleOccurrenceField(document.getElementById('occurrence-form'),'pic')");
+ assert(!field('occurrence-form','change_contact').checked);assert.equal(field('occurrence-form','value_contact').value,'999');
+ // Scope switching preserves sparse edits, including manually entered contact.
+ run("openOccurrenceEditor(bookings[0].id,'one')");
+ field('occurrence-form','change_title').checked=true;run("toggleOccurrenceField(document.getElementById('occurrence-form'),'title')");
+ field('occurrence-form','value_title').value='Keep my changes';
+ field('occurrence-form','change_date').checked=true;run("toggleOccurrenceField(document.getElementById('occurrence-form'),'date')");
+ const editedDate=run("addDays(selected,1)");field('occurrence-form','value_date').value=editedDate;
+ run("changeOccurrenceScope(document.getElementById('occurrence-form'),'future')");
+ assert.equal(field('occurrence-form','value_title').value,'Keep my changes');assert(field('occurrence-form','change_title').checked);
+ assert(!Object.hasOwn(run("occurrencePayload(document.getElementById('occurrence-form')).patch"),'date'));
+ run("changeOccurrenceScope(document.getElementById('occurrence-form'),'one')");
+ assert.equal(field('occurrence-form','value_date').value,editedDate);
+ // Admin edits retain the actual submitter, and existing PIC contacts clear on a name change.
+ run("role='admin';bookings[0].series_id=null;bookings[0].booked_by='Original submitter';openForm(null,bookings[0].id)");
+ assert(run("reviewRows(document.getElementById('booking-form'))").includes('Original submitter'));
+ field('booking-form','pic').value='Replacement';field('booking-form','pic').dispatchEvent(new w.Event('input',{bubbles:true}));
+ assert.equal(field('booking-form','contact').value,'');
+ run('openProfile()');
+ const nameLabel=field('profile-form','name').closest('label');
+ assert.equal((nameLabel.textContent.match(/\*/g)||[]).length,1);
+ // A delayed profile error must not appear inside a different booking form.
+ let failProfile;w.profilePromise=new Promise((_,reject)=>{failProfile=reject});
+ run("memberRpc=()=>profilePromise");
+ const pendingProfile=run("saveProfile({preventDefault(){},target:document.getElementById('profile-form')})");
+ run("openForm(1)");failProfile(Error('Old profile failure'));await pendingProfile;
+ assert(!w.document.getElementById('form-error').textContent.includes('Old profile failure'));
+ console.log('PASS: scope-switch preservation, correct original booker, existing-PIC contact cleanup, one required marker and stale profile-error isolation.');
  run("clearAccountState()");assert.equal(Object.keys(run('bookingProfile')).length,0);
  console.log('PASS: real DOM profile/autofill, on-behalf contact clearing, sparse bulk edits, exception opt-in, snapshot submission, assistant defaults and recurring entry points, account reset.');
  dom.window.close();
