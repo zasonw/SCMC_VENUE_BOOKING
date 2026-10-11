@@ -155,5 +155,9 @@ button { touch-action:manipulation; }
  .ux-month-picker:hover { background:var(--pale); }
 }
 
-.scmc-brand-logo { display:block; width:88px; height:88px; object-fit:contain; margin:14px 0 2px; border-radius:8px; }
-@media(max-width:999px) { .scmc-brand-logo { display:none; } }
+/* Compact brand: emblem beside name, service label beneath. */
+.sidebar .brand { display:flex; align-items:center; gap:10px; }
+.scmc-brand-logo { display:block; width:44px; height:44px; flex-shrink:0; object-fit:contain; margin:0; }
+.sidebar .brand-sub { display:block; margin:2px 0 26px 54px; font-size:10px; letter-spacing:.5px; white-space:nowrap; }
+@media(min-width:701px) and (max-width:999px) { .sidebar .brand-sub { display:none; } }
+@media(max-width:700px) { .sidebar .brand,.sidebar .brand-sub { display:none; } }

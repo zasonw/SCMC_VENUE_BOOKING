@@ -21,9 +21,9 @@ function openAccountMenu(){
 const uxRenderBase=render;
 render=function(){
  uxRenderBase();
- document.querySelector('.brand').textContent='SCMC';
- if(!document.querySelector('.scmc-brand-logo'))document.querySelector('.brand').insertAdjacentHTML('afterend','<img class="scmc-brand-logo" src="/scmc-logo.png?v=2" alt="SCMC church logo" width="88" height="88">');
- document.querySelector('.brand-sub').textContent=rt('Venue booking');
+ document.querySelector('.scmc-brand-logo')?.remove();
+ document.querySelector('.brand').innerHTML='<img class="scmc-brand-logo" src="/scmc-mark.png" alt="" width="44" height="44"><span>SCMC</span>';
+ document.querySelector('.brand-sub').textContent=rt('Venue Booking');
  const titles={schedule:['Venue calendar','Choose a date or open Slots to book.'],mine:['Your bookings','Manage your upcoming dates.'],rooms:['Rooms','Find a room for your gathering.'],admin:['Requests','Review bookings and manage spaces.']};
  const [title,subtitle]=titles[view]||titles.schedule;
  document.getElementById('heading').textContent=rt(title);document.getElementById('subtitle').textContent=rt(subtitle);
@@ -31,18 +31,26 @@ render=function(){
  document.querySelectorAll('#nav button').forEach(b=>{if(b.classList.contains('active'))b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
  document.getElementById('account-controls').insertAdjacentHTML('beforeend','<button class="secondary ux-account-button" onclick="openAccountMenu()">'+rt('Account')+'</button>');
 };
-Object.assign(translations,{'Choose month':'选择月份','Month':'月份','Year':'年份','Go':'前往'});
+Object.assign(translations,{'Venue Booking':'场地预约','Day':'日期','Choose date':'选择日期','Choose month':'选择月份','Month':'月份','Year':'年份','Go':'前往'});
 function adminMonthPickerAllowed(){return role==='admin'&&!!session&&window.matchMedia('(min-width:768px)').matches;}
 function openMonthPicker(){
  if(!adminMonthPickerAllowed())return;
  const [year,value]=month.split('-');
- showModal(modalHead(rt('Choose month'))+'<form onsubmit="goToMonth(event)"><div class="modal-body form-grid"><label class="field"><span>'+rt('Month')+'</span><select name="month" required>'+Array.from({length:12},(_,i)=>{const m=String(i+1).padStart(2,'0');return '<option value="'+m+'" '+(m===value?'selected':'')+'>'+new Intl.DateTimeFormat(language==='zh'?'zh-CN':'en',{month:'long'}).format(new Date(2026,i,1))+'</option>';}).join('')+'</select></label><label class="field"><span>'+rt('Year')+'</span><input name="year" type="number" min="1900" max="2100" step="1" required value="'+year+'"></label></div><div class="modal-footer"><button class="secondary" type="button" onclick="closeModal()">'+rt('Cancel')+'</button><button class="primary" type="submit">'+rt('Go')+'</button></div></form>');
+ showModal(modalHead(rt('Choose date'))+'<form onsubmit="goToMonth(event)"><div class="modal-body form-grid"><label class="field"><span>'+rt('Month')+'</span><select name="month" required onchange="syncMonthPickerDays(this.form)">'+Array.from({length:12},(_,i)=>{const m=String(i+1).padStart(2,'0');return '<option value="'+m+'" '+(m===value?'selected':'')+'>'+new Intl.DateTimeFormat(language==='zh'?'zh-CN':'en',{month:'long'}).format(new Date(2026,i,1))+'</option>';}).join('')+'</select></label><label class="field"><span>'+rt('Year')+'</span><input name="year" onchange="syncMonthPickerDays(this.form)" type="number" min="1900" max="2100" step="1" required value="'+year+'"></label><label class="field wide"><span>'+rt('Day')+'</span><select name="day" required></select></label></div><div class="modal-footer"><button class="secondary" type="button" onclick="closeModal()">'+rt('Cancel')+'</button><button class="primary" type="submit">'+rt('Go')+'</button></div></form>');
+ syncMonthPickerDays(document.querySelector('#modal form'),selected.startsWith(month)?selected.slice(-2):1);
+}
+function syncMonthPickerDays(form,preferred){
+ const y=Number(form.elements.year.value),m=Number(form.elements.month.value);
+ if(!Number.isInteger(y)||y<1900||y>2100||!m)return;
+ const count=new Date(y,m,0).getDate(),day=Math.min(count,Number(preferred||form.elements.day.value||1));
+ form.elements.day.innerHTML=Array.from({length:count},(_,i)=>'<option value="'+String(i+1).padStart(2,'0')+'" '+(i+1===day?'selected':'')+'>'+(i+1)+'</option>').join('');
 }
 function goToMonth(event){
  event.preventDefault();if(!adminMonthPickerAllowed())return;
  const f=event.target,y=f.elements.year.value,m=f.elements.month.value;
  if(!/^\d{4}$/.test(y)||+y<1900||+y>2100||! /^(0[1-9]|1[0-2])$/.test(m))return;
- month=y+'-'+m;selected=month+'-01';slotSelection=null;closeModal();render();
+ const d=f.elements.day.value;if(!/^\d{2}$/.test(d)||+d<1||+d>new Date(+y,+m,0).getDate())return;
+ month=y+'-'+m;selected=month+'-'+d;slotSelection=null;closeModal();render();
 }
 const uxCalendarHTML=calendarHTML;
 calendarHTML=function(){
