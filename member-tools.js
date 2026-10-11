@@ -245,4 +245,4 @@ openSeries=function(id){
  const first=list.find(canManageOccurrence),pending=role==='admin'?list.filter(b=>b.status==='pending'&&stamp(b.date,b.start)>now()).length:0;
  showModal(modalHead(rt('Series'),esc(list[0].title))+'<div class="modal-body"><p class="section-note">'+rt('Cancelled dates stay cancelled. Past dates are unchanged.')+'</p><div class="repeat-dates">'+list.map(b=>'<button class="series-date" onclick="openDetail(\''+b.id+'\')"><span>'+esc(b.date)+' · '+esc(roomName(b.room))+' · '+esc(b.start)+(b.is_exception?' · '+rt('Previously modified'):'')+'</span>'+badge(b)+'</button>').join('')+'</div></div><div class="modal-footer">'+(first?'<button class="secondary" onclick="openOccurrenceEditor(\''+first.id+'\',\'future\')">'+rt('Edit occurrences')+'</button><button class="danger" onclick="openOccurrenceEditor(\''+first.id+'\',\'future\',\'cancel\')">'+rt('Skip occurrences')+'</button>':'')+(pending?'<button class="primary" onclick="seriesAction(\''+id+'\',\'approve\')">'+rt('Approve series')+'</button>':'')+'</div>');
 };
-if(!window.__TEST__)startLive();
+// ux.js starts the application after the final presentation hooks.

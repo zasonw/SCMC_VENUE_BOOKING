@@ -84,7 +84,7 @@ The assistant is opened with an accessible bottom-right robot button, raised abo
 Voice pause update: continuous dictation now survives normal speech pauses, restarting recognition when the browser ends a segment. Each segment and each new microphone session appends to the request. The former one-minute cutoff is removed. Stop finishes the current segment; repeated immediate browser failures stop with a clear retry prompt instead of looping. Close/background still aborts listening. The request remains limited to 2,000 characters.
 
 ## Account defaults and recurring exceptions (October 2026)
-- `member-tools.js` is the final script and starts the application after all UI hooks.
+- `member-tools.js` installs profile/recurring hooks; `ux.js` is the final script and starts the application.
 - My profile stores a name, default fellowship and optional contact in the private `booking_profiles` table. State returns only the signed-in user's profile. A PIC is separate from the authenticated booking owner.
 - Booking defaults are editable suggestions. Changing the suggested PIC clears the suggested contact. Saving booking details as defaults is explicit.
 - Recurring bookings support editing or cancelling one future occurrence or selected occurrences from a date onward. Bulk changes are sparse: only checked fields change. Cancelled/past occurrences stay unchanged; individually modified dates are flagged and initially unchecked in bulk previews.
@@ -94,3 +94,12 @@ Voice pause update: continuous dictation now survives normal speech pauses, rest
 - To run DOM integration tests: `npm ci --prefix tests`, then `npm test --prefix tests`. Existing Node tests remain available individually. `tests/profile-series.sql` uses temporary transaction fixtures and ends with rollback.
 - Tested: real DOM interactions via jsdom, frontend regressions and database transactions. Physical iPhone layout, browser speech recognition and authenticated live AI interpretation still require device testing.
 - Existing Supabase advisor warning: leaked-password protection remains disabled. [Supabase password security settings](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Private tables intentionally have RLS enabled with no direct client grants or policies; access goes through permission-checked RPC functions.
+
+
+## UI / UX refresh
+- Mobile navigation stays at the bottom. Account tools are grouped into an Account menu. Desktop uses a sidebar and retains direct management tools.
+- Booking controls are grouped into When & where, Activity and Person in charge. Existing inputs and validation are preserved.
+- Recurring edits use expandable field choices. After preview, the confirmation action stays in the footer; changing a field invalidates that preview.
+- Slots have previous/today/next controls, brief selection guidance and sticky room/time headings. Assistant and slot action positions account for mobile navigation.
+- Styling lives in `ux.css`; presentation hooks live in `ux.js`. Load them after the existing app files.
+- `tests/ux-browser.cjs` is an optional Playwright smoke test using mocked account/booking fixtures. Supply `BROWSER_EXECUTABLE` if Chromium is not installed through Playwright. Verified 390px and 1440px layouts, modal overflow, navigation separation and collapsible controls. These are Chromium checks, not physical iPhone/Safari or real speech tests.
