@@ -91,14 +91,14 @@ async function submitAuth(event,mode){
  finally{button.disabled=false;}
 }
 async function signOut(){const {error}=await db.auth.signOut();if(error)return toast(friendlyError(error));clearAccountState();await refreshLive();}
-async function mutate(action,payload,success,errorElement='form-error'){
+async function mutate(action,payload,success,errorElement='form-error',keepOpen=false){
  if(mutationInFlight)return false;mutationInFlight=true;
  const buttons=[...document.querySelectorAll('#modal button')];buttons.forEach(b=>b.disabled=true);
- try{await api(action,payload);closeModal();await refreshLive();toast(success);return true;}
+ try{await api(action,payload);if(!keepOpen)closeModal();await refreshLive();toast(success);return true;}
  catch(error){const msg=liveText(friendlyError(error)),el=document.getElementById(errorElement);if(el){el.textContent=msg;el.style.display='block';}else toast(msg);return false;}
  finally{mutationInFlight=false;buttons.forEach(b=>b.disabled=false);}
 }
-submitBooking=async function(event,id,block){event.preventDefault();const values=Object.fromEntries(new FormData(event.target));if(!session)return authForm();const ok=await mutate('save',{...values,id,block},id?'Booking updated':'Request submitted. Your slot is held.');if(ok){selected=values.date;month=selected.slice(0,7);slotSelection=null;render();}};
+submitBooking=async function(event,id,block){event.preventDefault();const values=Object.fromEntries(new FormData(event.target));if(!session)return authForm();const ok=await mutate('save',{...values,id,block},id?'Booking updated':'Request submitted. Your slot is held.','form-error',event.target.dataset.morphActive==='yes');if(ok){selected=values.date;month=selected.slice(0,7);slotSelection=null;render();}return ok;};
 approve=id=>mutate('approve',{id},'Booking confirmed.');
 rejectBooking=(id,reason)=>mutate('reject',{id,reason},'Request rejected. The slot is available again.');
 cancelBooking=id=>mutate('cancel',{id},'Booking cancelled. The slot is available again.');

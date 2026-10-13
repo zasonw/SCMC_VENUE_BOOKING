@@ -62,8 +62,8 @@ submitBooking=async function(event,id,block){
   await recurringApi('create',{...payload,dates,request_key:repeatRequestKey});
   if(revision!==sessionRevision)return;
   selected=dates[0];month=selected.slice(0,7);slotSelection=null;
-  if(document.getElementById('booking-form')===form)closeModal();
-  await refreshLive();if(revision===sessionRevision)toast('Series submitted.');
+  if(document.getElementById('booking-form')===form&&form.dataset.morphActive!=='yes')closeModal();
+  await refreshLive();if(revision===sessionRevision)toast('Series submitted.');return true;
  }catch(error){
   if(revision!==sessionRevision||document.getElementById('booking-form')!==form||!document.getElementById('modal').open)return;
   // Only definite availability failures invalidate the preview; network retries retain their idempotency key.

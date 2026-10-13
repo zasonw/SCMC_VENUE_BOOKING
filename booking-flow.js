@@ -53,7 +53,7 @@ submitBooking=function(event,id,block){
  const repeating=form.elements.repeat_frequency&&form.elements.repeat_frequency.value!=='once';
  if(block||(repeating&&(!repeatPreview||repeatPreview.signature!==JSON.stringify(repeatPayload(form)))))return submitAfterReview(event,id,block);
  event.preventDefault();if(!form.reportValidity())return;
- if(form.dataset.reviewConfirmed==='yes'){delete form.dataset.reviewConfirmed;return submitAfterReview(event,id,block);}
+ if(form.dataset.reviewConfirmed==='yes'){delete form.dataset.reviewConfirmed;return animateBookingSubmission(form,()=>submitAfterReview(event,id,block));}
  if(form.querySelector('.booking-review'))return;
  form.querySelector('.modal-body').hidden=true;form.querySelector('.modal-footer').hidden=true;
  form.insertAdjacentHTML('beforeend','<section class="booking-review"><div class="modal-body"><h2>'+rt('Review booking')+'</h2><p class="section-note">'+rt('Not submitted yet')+'</p><dl class="detail-grid">'+reviewRows(form)+'</dl></div><div class="modal-footer"><button type="button" class="secondary" onclick="backFromReview()">'+rt('Back')+'</button><button type="button" class="primary" onclick="confirmReviewedBooking()">'+rt('Confirm booking')+'</button></div></section>');
@@ -61,3 +61,37 @@ submitBooking=function(event,id,block){
 }
 function confirmReviewedBooking(){const form=document.getElementById('booking-form');if(!form||repeatBusy||mutationInFlight)return;backFromReview(form);form.dataset.reviewConfirmed='yes';form.requestSubmit();delete form.dataset.reviewConfirmed;}
 // assistant-ui.js starts the fully configured application.
+
+Object.assign(translations,{'Submitting…':'正在提交…','Saved. Approval status is shown in My bookings.':'已保存 可在我的预约查看审批状态','New booking':'新预约'});
+const bookingMorphDelay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function animateBookingSubmission(form,save){
+ if(form.dataset.morphActive==='yes')return;
+ const button=form.querySelector('button[type="submit"]');if(!button)return save();
+ const original=button.innerHTML,room=Number(form.elements.room.value),revision=sessionRevision;
+ const controls=[...form.querySelectorAll('button')].map(el=>[el,el.disabled]);
+ form.dataset.morphActive='yes';form.inert=true;form.setAttribute('aria-busy','true');
+ const width=Math.max(140,button.getBoundingClientRect().width);
+ const shell=document.createElement('div');shell.className='booking-morph-shell';shell.style.width=width+'px';
+ button.before(shell);shell.append(button);button.classList.add('booking-morph');button.style.width=width+'px';
+ button.innerHTML='<span class="morph-label">'+rt('Submit booking')+'</span><span class="morph-spinner" aria-hidden="true"></span><svg class="morph-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4 10-10"/></svg>';
+ button.setAttribute('aria-label',rt('Submitting…'));button.disabled=true;
+ const started=Date.now();
+ button.getBoundingClientRect();button.classList.add('is-loading');button.style.width='48px';
+ controls.forEach(([el])=>el.disabled=true);
+ let ok=false;
+ try{ok=await save();}catch(error){toast(friendlyError(error));}
+ await bookingMorphDelay(Math.max(0,1500-(Date.now()-started)));
+ if(!form.isConnected||document.getElementById('booking-form')!==form||revision!==sessionRevision)return;
+ form.inert=false;form.removeAttribute('aria-busy');controls.forEach(([el,disabled])=>el.disabled=disabled);
+ if(!ok){
+  delete form.dataset.morphActive;button.classList.remove('booking-morph','is-loading');button.style.width='';button.innerHTML=original;button.removeAttribute('aria-label');shell.replaceWith(button);return;
+ }
+ // A successful submission must never submit the same form again.
+ form.querySelectorAll('input,select,textarea,button[type="submit"]').forEach(el=>el.disabled=true);
+ button.classList.remove('is-loading');button.classList.add('is-success');button.setAttribute('aria-label',rt('Saved. Approval status is shown in My bookings.'));
+ const status=document.createElement('p');status.className='morph-status';status.setAttribute('role','status');status.textContent=rt('Saved. Approval status is shown in My bookings.');
+ form.querySelector('.modal-footer').before(status);
+ const reset=()=>{if(form.isConnected&&document.getElementById('booking-form')===form&&document.getElementById('modal').open&&revision===sessionRevision)openForm(room);};
+ const next=document.createElement('button');next.type='button';next.className='secondary';next.textContent=rt('New booking');next.onclick=reset;form.querySelector('.modal-footer').prepend(next);
+ setTimeout(reset,60000);
+}

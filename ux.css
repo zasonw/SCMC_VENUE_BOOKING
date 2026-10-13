@@ -161,3 +161,16 @@ button { touch-action:manipulation; }
 .sidebar .brand-sub { display:block; margin:2px 0 26px 54px; font-size:10px; letter-spacing:.5px; white-space:nowrap; }
 @media(min-width:701px) and (max-width:999px) { .sidebar .brand-sub { display:none; } }
 @media(max-width:700px) { .sidebar .brand,.sidebar .brand-sub { display:none; } }
+
+.booking-morph-shell { display:flex; justify-content:center; align-items:center; flex-shrink:0; max-width:100%; }
+#modal .booking-morph { position:relative; flex:none; height:48px; min-width:48px; padding:0; overflow:hidden; transition:width 30ms ease-in-out,border-radius 30ms ease-in-out,background-color 150ms ease-in-out; opacity:1; }
+.morph-label { transition:opacity 30ms ease-in-out; white-space:nowrap; }
+.booking-morph.is-loading,.booking-morph.is-success { border-radius:50%; }
+.is-loading .morph-label,.is-success .morph-label { opacity:0; }
+.morph-spinner,.morph-tick { display:none; position:absolute; inset:0; margin:auto; width:24px; height:24px; }
+.is-loading .morph-spinner { display:block; border:3px solid #ffffff55; border-top-color:#fff; border-radius:50%; animation:booking-spin .7s linear infinite; }
+#modal .booking-morph.is-success { background:#d5f4df; color:#146638; border:2px solid #43a567; cursor:default; }
+.is-success .morph-tick { display:block; stroke:currentColor; stroke-width:3; fill:none; }
+.morph-status { padding:12px 24px; color:#146638; font-size:14px; }
+@keyframes booking-spin { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { #modal .booking-morph,.morph-label { transition:none; } .is-loading .morph-spinner { animation:none; } }
