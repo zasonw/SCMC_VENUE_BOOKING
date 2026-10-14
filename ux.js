@@ -1,6 +1,6 @@
 'use strict';
 Object.assign(translations,{
- 'Next available':'下个可用时段','No available slots on this date.':'此日期没有可用时段', 'Account':'账号','Venue booking':'场地预约','Choose a date or open Slots to book.':'选择日期 或打开时段直接预约',
+ 'Status':'状态','Filters':'筛选','Next available':'下个可用时段','No available slots on this date.':'此日期没有可用时段', 'Account':'账号','Venue booking':'场地预约','Choose a date or open Slots to book.':'选择日期 或打开时段直接预约',
  'Your bookings':'我的预约','Manage your upcoming dates.':'查看和管理未来预约','Rooms':'场地',
  'Find a room for your gathering.':'查看场地和可用时段','Requests':'审批',
  'Review bookings and manage spaces.':'审批预约和管理场地',
@@ -16,8 +16,9 @@ function openAccountMenu(){
  (session?'<button class="secondary" onclick="openProfile()">'+rt('My profile')+'</button><button class="secondary" onclick="closeModal();navigate(\'mine\')">'+rt('My bookings')+'</button>'+
  (role==='admin'?'<button class="secondary" onclick="manageUsers()">'+rt('Users')+'</button><button class="secondary" onclick="managePeople()">'+rt('People')+'</button><button class="secondary" onclick="manageRooms()">'+rt('Rooms')+'</button>':'')+
  '<button class="secondary" onclick="signOut()">'+rt('Sign out')+'</button>':
- '<button class="primary" onclick="authForm()">'+rt('Sign in')+'</button><button class="secondary" onclick="authForm(\'signup\')">'+rt('Register')+'</button>')+'</div>');
+ '<button class="primary" onclick="authForm()">'+rt('Sign in')+'</button><button class="secondary" onclick="authForm(\'signup\')">'+rt('Register')+'</button>')+'<button class="secondary" onclick="closeModal();refreshLive()">'+rt('Refresh')+'</button></div>');
 }
+let phoneFiltersOpen=false;
 const uxRenderBase=render;
 render=function(){
  uxRenderBase();
@@ -29,6 +30,12 @@ render=function(){
  document.getElementById('heading').textContent=rt(title);document.getElementById('subtitle').textContent=rt(subtitle);
  document.getElementById('nav').setAttribute('aria-label',rt('Venue booking'));
  document.querySelectorAll('#nav button').forEach(b=>{if(b.classList.contains('active'))b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
+ const filters=document.querySelector('.filters');
+ if(filters){
+  filters.classList.toggle('phone-filters-open',phoneFiltersOpen||!!statusFilter);
+  const button=document.createElement('button');button.type='button';button.className='phone-filter-toggle secondary';button.textContent=rt('Status');button.setAttribute('aria-expanded',String(phoneFiltersOpen||!!statusFilter));button.onclick=()=>{phoneFiltersOpen=!filters.classList.contains('phone-filters-open');filters.classList.toggle('phone-filters-open',phoneFiltersOpen);button.setAttribute('aria-expanded',String(phoneFiltersOpen));};
+  filters.querySelector('select')?.after(button);
+ }
  document.getElementById('account-controls').insertAdjacentHTML('beforeend','<button class="secondary ux-account-button" onclick="openAccountMenu()">'+rt('Account')+'</button>');
 };
 Object.assign(translations,{'Venue Booking':'场地预约','Day':'日期','Choose date':'选择日期','Choose month':'选择月份','Month':'月份','Year':'年份','Go':'前往'});

@@ -174,3 +174,67 @@ button { touch-action:manipulation; }
 .morph-status { padding:12px 24px; color:#146638; font-size:14px; }
 @keyframes booking-spin { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { #modal .booking-morph,.morph-label { transition:none; } .is-loading .morph-spinner { animation:none; } }
+
+/* Phone booking experience: compact overview, generous forms and thumb controls. */
+.phone-filter-toggle { display:none; }
+@media(max-width:700px) {
+ .main { padding:12px 12px calc(150px + env(safe-area-inset-bottom)); }
+ .topbar { margin-bottom:12px; }
+ .header { margin-bottom:4px; gap:8px; }
+ .header h1 { font-size:24px; line-height:1.2; }
+ .ux-header-actions > .secondary { display:none; }
+ .ux-header-actions > .primary { min-height:48px; min-width:82px; font-size:15px; border-radius:14px; }
+ .connection-bar { margin-bottom:12px; font-size:11px; }
+ .sidebar .nav { margin-top:0; }
+ .nav button,.nav .action-label { font-size:13px; }
+ .toolbar { gap:10px; margin-bottom:12px; }
+ .toolbar > .seg { border-radius:14px; }
+ .toolbar > .seg button { font-size:15px; min-height:46px; }
+ .filters { grid-template-columns:minmax(0,1fr) auto; align-items:center; }
+ .filters select { font-size:16px; min-height:48px; border-radius:12px; }
+ .phone-filter-toggle { display:block; min-height:48px; padding:10px 16px; }
+ .filters select:last-child { display:none; grid-column:1/-1; }
+ .filters.phone-filters-open select:last-child { display:block; }
+ .panel { border-radius:16px; }
+ .panel-head { flex-wrap:wrap; gap:10px; }
+ .panel-head h2 { font-size:19px; }
+ .month-controls { gap:2px; }
+ .month-controls button { min-height:44px; font-size:12px; }
+ .calendar-grid .day { min-height:74px; padding:6px 3px; }
+ .day-num { font-size:14px; width:28px; height:28px; }
+ .event-chip { font-size:10px; padding:3px; }
+ .legend { padding:12px; gap:12px; }
+ .slot-date { padding:12px; }
+ .slot-date input { max-width:64%; font-size:16px; }
+ .ux-day-controls { padding:10px 12px 0; gap:6px; }
+ .ux-day-controls button { min-height:44px; font-size:12px; }
+ .ux-slot-hint { padding:8px 12px; }
+ .ux-slot-jump { padding:0 12px 6px; }
+ .ux-slot-jump button { min-height:44px; }
+ .slot-legend { gap:8px 12px; padding:10px 12px; }
+ .slot-scroll { max-height:55dvh; }
+ .time-slot { min-height:52px; font-size:12px; }
+ .slot-proceed { padding:12px; background:#f8fbf8; }
+ .slot-proceed-actions .primary { min-height:50px; border-radius:12px; font-size:16px; }
+ .slot-summary { font-size:14px; }
+ #modal { position:fixed; inset:auto 0 0; margin:0; width:100%; max-width:100%; max-height:94dvh; border-radius:22px 22px 0 0; }
+ #modal .modal-head { padding:18px 18px 14px; align-items:center; }
+ #modal .modal-head h2 { font-size:20px; }
+ #modal .modal-head p { font-size:13px; }
+ #modal .modal-body { padding:20px 18px; }
+ #modal .field { font-size:14px; }
+ #modal .field input,#modal .field select { min-height:52px; border-radius:12px; padding:12px; }
+ #modal .ux-form-section { padding-bottom:20px; }
+ #modal .ux-form-section h3 { font-size:15px; padding-bottom:16px; }
+ #modal .modal-footer { padding:12px 18px max(16px,env(safe-area-inset-bottom)); }
+ #modal .modal-footer button { min-height:50px; border-radius:12px; }
+ #modal .modal-footer .booking-morph-shell { flex:1; }
+ #modal .booking-morph.is-loading,#modal .booking-morph.is-success { border-radius:50%; min-height:48px; }
+ .booking-review .detail-grid { gap:10px; }
+ .booking-review .detail-grid > div { padding:12px 14px; }
+ .booking-review dd { font-size:16px; }
+ .booking-card .card-main p { font-size:14px; line-height:1.6; }
+ .mine-tabs { gap:4px; }
+ .mine-tabs button { font-size:14px; }
+ .toast { bottom:calc(82px + env(safe-area-inset-bottom)); z-index:50; }
+}
