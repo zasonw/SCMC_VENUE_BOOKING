@@ -77,5 +77,14 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  await page.setViewportSize({width:820,height:1180});assert(await page.locator('.ux-month-picker').isVisible());
  await page.setViewportSize({width:390,height:844});assert(!await page.locator('.ux-month-picker').isVisible());
  await page.evaluate(()=>openMonthPicker());assert(!await page.locator('#modal').isVisible());
+ await page.evaluate(()=>{
+  closeModal();session={user:{id:'fixture'}};role='member';roomFilter='';statusFilter='';mode='calendar';
+  bookings=Array.from({length:6},(_,i)=>({id:'busy-'+i,room:1,date:selected,start:'09:00',end:'10:00',status:'confirmed',title:'Activity '+i,group:'Test',pic:'Jason',history:[]}));render();
+ });
+ assert.equal(await page.locator('.day.selected .event-chip:visible').count(),3);
+ await page.locator('.day.selected .calendar-more').click();assert.equal(await page.locator('#modal .agenda-item').count(),6);
+ assert(await page.locator('#modal .modal-head button').isVisible());await page.evaluate(()=>closeModal());
+ await page.locator('.selected-day-actions .primary').click();assert(await page.locator('.slot-scroll').isVisible());
+ for(const width of [1024,1280,1440]){await page.setViewportSize({width,height:900});await page.evaluate(()=>{mode='calendar';render()});await noPageOverflow();}
  assert.deepEqual(errors,[]);await browser.close();console.log('PASS: 390px/1440px layouts, no page/modal overflow, mobile navigation and assistant separation, collapsible edits, Chinese controls and no browser errors.');
 })().catch(e=>{console.error(e);process.exitCode=1});

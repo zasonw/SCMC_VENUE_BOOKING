@@ -238,3 +238,66 @@ button { touch-action:manipulation; }
  .mine-tabs button { font-size:14px; }
  .toast { bottom:calc(82px + env(safe-area-inset-bottom)); z-index:50; }
 }
+
+/* Shared calendar hierarchy and focused booking review. */
+.selected-day-bar { display:none; }
+.event-chip[hidden] { display:none!important; }
+.calendar-more { display:block; padding:5px; font-size:11px; font-weight:650; color:var(--green); text-align:left; border-radius:5px; }
+.calendar-more:hover { background:var(--pale); }
+.calendar-grid .day:focus-visible { outline:3px solid #377859; outline-offset:-3px; }
+#modal .ux-form-section h3 { letter-spacing:.1px; }
+#modal .ux-form-section .field:focus-within > span { color:var(--green); }
+@media(min-width:1000px) {
+ .main { padding:24px 30px 70px; max-width:1700px; margin:0 auto; }
+ .sidebar { padding:28px 18px; background:#fbfdfb; }
+ .topbar { border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:22px; }
+ .header h1 { font-size:30px; letter-spacing:-.8px; }
+ .header { margin-bottom:10px; }
+ .connection-bar { margin-bottom:20px; }
+ #content > .toolbar { padding:10px 12px; background:#fff; border:1px solid var(--line); border-radius:14px; margin-bottom:20px; }
+ .calendar-layout { grid-template-columns:minmax(0,1fr) 300px; gap:20px; }
+ .calendar-layout > .agenda { position:sticky; top:20px; }
+ .calendar-layout .agenda-body { max-height:calc(100dvh - 220px); overflow-y:auto; overscroll-behavior:contain; }
+ .calendar-grid .day { min-height:115px; padding:9px 6px; }
+ .event-chip { padding:5px 6px; font-size:11px; margin-top:5px; }
+ .day.selected { background:#eaf3ed; box-shadow:inset 0 0 0 2px #578b6c; }
+ .agenda-head { background:#f1f7f2; }
+ .agenda-item h3 { font-size:15px; }
+ .agenda-item p { font-size:13px; }
+ .agenda-foot { padding-top:14px; border-top:1px solid var(--line); }
+ .agenda-foot button { min-height:44px; }
+ .booking-card { border-radius:14px; padding:20px; gap:20px; }
+ .booking-card:hover { border-color:#9fbaa8; }
+ .card-main h3 { font-size:16px; }
+ .card-main p { font-size:13px; }
+ .rooms-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+ .room-card { padding:24px; }
+ .room-card h3 { font-size:18px; }
+ .room-card button { min-height:44px; }
+ #modal:has(.ux-booking-form) { max-width:640px; }
+}
+@media(min-width:1000px) and (max-width:1199px) {
+ .layout { grid-template-columns:180px minmax(0,1fr); }
+ .main { padding-inline:20px; }
+ .calendar-layout { grid-template-columns:minmax(0,1fr) 250px; gap:14px; }
+ .sidebar .brand { font-size:23px; gap:7px; }
+ .scmc-brand-logo { width:36px; height:36px; }
+ .sidebar .brand-sub { margin-left:43px; font-size:9px; }
+}
+@media(max-width:700px) {
+ .selected-day-bar { display:flex; justify-content:space-between; gap:10px; align-items:center; margin:0 0 12px; padding:12px; border-radius:14px; background:#e9f2ec; }
+ .selected-day-bar small { display:block; font-size:11px; }
+ .selected-day-bar strong { display:block; font-size:14px; }
+ .selected-day-actions { display:flex; gap:6px; }
+ .selected-day-actions button { min-height:44px; font-size:12px; padding:8px 10px; }
+ .calendar-more { min-height:28px; font-size:10px; padding:4px 2px; }
+ .calendar-layout .agenda { margin-top:14px; }
+ .agenda-head { background:#f1f7f2; }
+ .agenda-item h3 { font-size:16px; }
+ .agenda-item p { font-size:14px; }
+ .agenda-foot { padding-top:10px; }
+ .rooms-grid { gap:12px; }
+ .room-card { padding:18px; }
+ .room-card h3 { font-size:18px; }
+ .room-card button { min-height:48px; font-size:15px; }
+}

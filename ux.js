@@ -1,6 +1,6 @@
 'use strict';
 Object.assign(translations,{
- 'Status':'状态','Filters':'筛选','Next available':'下个可用时段','No available slots on this date.':'此日期没有可用时段', 'Account':'账号','Venue booking':'场地预约','Choose a date or open Slots to book.':'选择日期 或打开时段直接预约',
+ 'View day':'查看当天','View slots':'查看时段','more':'更多','Status':'状态','Filters':'筛选','Next available':'下个可用时段','No available slots on this date.':'此日期没有可用时段', 'Account':'账号','Venue booking':'场地预约','Choose a date or open Slots to book.':'选择日期 或打开时段直接预约',
  'Your bookings':'我的预约','Manage your upcoming dates.':'查看和管理未来预约','Rooms':'场地',
  'Find a room for your gathering.':'查看场地和可用时段','Requests':'审批',
  'Review bookings and manage spaces.':'审批预约和管理场地',
@@ -18,6 +18,7 @@ function openAccountMenu(){
  '<button class="secondary" onclick="signOut()">'+rt('Sign out')+'</button>':
  '<button class="primary" onclick="authForm()">'+rt('Sign in')+'</button><button class="secondary" onclick="authForm(\'signup\')">'+rt('Register')+'</button>')+'<button class="secondary" onclick="closeModal();refreshLive()">'+rt('Refresh')+'</button></div>');
 }
+showAgenda=function(){showModal(modalHead(rt('Selected day'))+agendaHTML());};
 let phoneFiltersOpen=false;
 const uxRenderBase=render;
 render=function(){
@@ -30,6 +31,20 @@ render=function(){
  document.getElementById('heading').textContent=rt(title);document.getElementById('subtitle').textContent=rt(subtitle);
  document.getElementById('nav').setAttribute('aria-label',rt('Venue booking'));
  document.querySelectorAll('#nav button').forEach(b=>{if(b.classList.contains('active'))b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
+ if(view==='schedule'&&mode==='calendar'){
+  const layout=document.querySelector('.calendar-layout');
+  if(layout){
+   const bar=document.createElement('div');bar.className='selected-day-bar';
+   bar.innerHTML='<div><small>'+rt('Selected day')+'</small><strong>'+dateLabel(selected,{weekday:'short',day:'numeric',month:'short'})+'</strong></div><div class="selected-day-actions"><button class="secondary" onclick="showAgenda()">'+rt('View day')+'</button><button class="primary" onclick="setMode(\'venues\')">'+rt('View slots')+'</button></div>';
+   layout.before(bar);
+  }
+  document.querySelectorAll('.calendar-grid .day').forEach(day=>{
+   const chips=[...day.querySelectorAll('.event-chip')];if(chips.length<=3)return;
+   chips.slice(3).forEach(chip=>chip.hidden=true);
+   const more=document.createElement('button');more.type='button';more.className='calendar-more';more.textContent='+'+(chips.length-3)+' '+rt('more');
+   more.onclick=event=>{event.stopPropagation();day.click();showAgenda();};day.append(more);
+  });
+ }
  const filters=document.querySelector('.filters');
  if(filters){
   filters.classList.toggle('phone-filters-open',phoneFiltersOpen||!!statusFilter);
@@ -81,7 +96,7 @@ function uxBookingForm(){
  form.classList.add('ux-booking-form');
  const field=name=>form.elements[name]?.closest('.field');
  const fellowship=form.elements.fellowship_choice?.closest('.wide')||field('group');
- const schedule=uxSection('When & where',1,['date','start','end','room'].map(field));
+ const schedule=uxSection('When & where',1,['room','date','start','end'].map(field));
  const activity=uxSection('Activity',2,[field('title'),fellowship]);
  const pic=uxSection('Person in charge',3,[field('pic')]);
  const actions=grid.querySelector('.assistant-choices');if(actions)pic.append(actions);
