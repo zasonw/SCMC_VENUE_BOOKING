@@ -36,6 +36,11 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert(assistant.y+assistant.height<=nav.y,'assistant overlaps bottom navigation');
  await page.evaluate(()=>openForm(4));
  assert.equal(await page.locator('.ux-form-section').count(),3);
+ assert.equal(await page.locator('#modal').getAttribute('aria-labelledby'),'ux-dialog-title');
+ assert(await page.locator('#ux-dialog-title').evaluate(e=>document.activeElement===e),'dialog title receives focus');
+ assert.equal(await page.locator('.slot-scroll').getAttribute('tabindex'),'0');
+ assert.equal(await page.locator('.ux-skip-link').count(),1);
+
  assert(await page.evaluate(()=>{const m=document.getElementById('modal');return m.scrollWidth<=m.clientWidth+1}),'modal overflow');
  await page.screenshot({path:'/tmp/venue-ux-shots/mobile-booking.png'});
  await page.evaluate(()=>{closeModal();openOccurrenceEditor(bookings[0].id,'future')});

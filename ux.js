@@ -1,5 +1,6 @@
 'use strict';
 Object.assign(translations,{
+ 'Skip to content':'跳到主要内容','Booking slots':'预约时段',
  'View day':'查看当天','View slots':'查看时段','more':'更多','Status':'状态','Filters':'筛选','Next available':'下个可用时段','No available slots on this date.':'此日期没有可用时段', 'Account':'账号','Venue booking':'场地预约','Choose a date or open Slots to book.':'选择日期 或打开时段直接预约',
  'Your bookings':'我的预约','Manage your upcoming dates.':'查看和管理未来预约','Rooms':'场地',
  'Find a room for your gathering.':'查看场地和可用时段','Requests':'审批',
@@ -23,6 +24,15 @@ let phoneFiltersOpen=false;
 const uxRenderBase=render;
 render=function(){
  uxRenderBase();
+ const main=document.querySelector('.main');
+ if(main){main.id='main-content';main.tabIndex=-1;}
+ let skip=document.querySelector('.ux-skip-link');
+ if(!skip){skip=document.createElement('a');skip.className='ux-skip-link';skip.href='#main-content';document.body.prepend(skip);}
+ skip.textContent=rt('Skip to content');
+ document.querySelectorAll('.seg button').forEach(button=>button.setAttribute('aria-pressed',String(button.classList.contains('active'))));
+ const scroll=document.querySelector('.slot-scroll');
+ if(scroll){scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label',rt('Booking slots'));}
+
  document.querySelector('.scmc-brand-logo')?.remove();
  document.querySelector('.brand').innerHTML='<img class="scmc-brand-logo" src="/scmc-mark.png" alt="" width="44" height="44"><span>SCMC</span>';
  document.querySelector('.brand-sub').textContent=rt('Venue Booking');
@@ -141,4 +151,16 @@ previewOccurrence=async function(event){
 // Mobile navigation should land at the start of the newly selected page.
 const uxNavigate=navigate;
 navigate=function(v){uxNavigate(v);if(window.matchMedia?.('(max-width:700px)').matches)window.scrollTo({top:0,behavior:'instant'});};
+// Name every dialog and keep its heading visible when a multi-step flow replaces it.
+const uxShowModal=showModal;
+showModal=function(...args){
+ const result=uxShowModal(...args),modal=document.getElementById('modal');
+ const heading=modal.querySelector('h2');
+ if(heading){
+  heading.id='ux-dialog-title';heading.tabIndex=-1;
+  modal.setAttribute('aria-labelledby',heading.id);modal.removeAttribute('aria-label');
+  heading.focus({preventScroll:true});modal.scrollTop=0;
+ }else{modal.removeAttribute('aria-labelledby');modal.setAttribute('aria-label',rt('Booking details'));}
+ return result;
+};
 if(!window.__TEST__)startLive();

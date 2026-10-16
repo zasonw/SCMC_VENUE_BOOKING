@@ -301,3 +301,32 @@ button { touch-action:manipulation; }
  .room-card h3 { font-size:18px; }
  .room-card button { min-height:48px; font-size:15px; }
 }
+
+/* UI UX Pro Max accessibility pass: readable secondary text and steady controls. */
+:root { --muted:#53675b; --focus:#245d47; }
+.seg button { color:var(--muted); }
+.ux-skip-link { position:fixed; top:8px; left:8px; z-index:100; padding:12px 18px; background:var(--green); color:white; border-radius:8px; transform:translateY(-160%); }
+.ux-skip-link:focus { transform:translateY(0); }
+#main-content:focus { outline:none; }
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,.slot-scroll:focus-visible { outline:3px solid var(--focus); outline-offset:3px; }
+.slot-scroll:focus-visible { outline-offset:-3px; }
+button:not(:disabled):active { filter:brightness(.93); }
+.month-controls { gap:8px; }
+.month-controls button { min-width:44px; min-height:44px; }
+#modal { scroll-padding-block:100px 100px; }
+#modal .modal-body { scroll-margin-bottom:100px; }
+#modal .modal-head h2:focus { outline:none; }
+#modal .field input,#modal .field select,#modal .field textarea { border-color:#879c8e; }
+#modal .field input[type=checkbox] { accent-color:var(--green); }
+#modal .repeat-date small { font-size:12px; }
+.legend,.slot-legend { font-size:12px; color:var(--muted); }
+.badge.pending { color:#785016; }
+.badge.blocked { color:#48616b; }
+@media(max-width:700px) {
+ .selected-day-actions,.ux-day-controls { gap:8px; }
+ .selected-day-bar { flex-wrap:wrap; }
+ .selected-day-bar small,.connection-bar,.ux-slot-hint { font-size:12px; }
+ .slot-legend { gap:8px 12px; }
+ .calendar-more { min-height:32px; }
+ .booking-card .card-actions { flex-wrap:wrap; }
+}
