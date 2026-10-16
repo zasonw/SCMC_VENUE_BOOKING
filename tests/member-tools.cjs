@@ -6,7 +6,7 @@ const w=dom.window,context=dom.getInternalVMContext(),run=s=>vm.runInContext(s,c
 w.__TEST__=true;w.confirm=()=>true;w.HTMLElement.prototype.scrollIntoView=function(){};
 w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};
 run(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
-for(const file of ['live.js','recurring.js','booking-ui.js','booking-flow.js','assistant-ui.js','member-tools.js','ux.js'])run(fs.readFileSync(root+file,'utf8'));
+for(const file of ['live.js','recurring.js','booking-ui.js','booking-flow.js','assistant-ui.js','member-tools.js','updates.js','ux.js'])run(fs.readFileSync(root+file,'utf8'));
 const field=(form,name)=>w.document.getElementById(form).elements[name];
 (async()=>{
  run("session={user:{id:'u1'}};liveReady=true;me='Account owner';rooms=[{id:1,name:'Room One',enabled:true},{id:2,name:'Room Two',enabled:true}];bookings=[];selected=addDays(dayKey(),10);month=selected.slice(0,7);bookingProfile={name:'Default PIC',fellowship:'乐龄团契',contact:'123'};render();openForm(1)");

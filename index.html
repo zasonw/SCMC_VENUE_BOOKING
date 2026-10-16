@@ -46,7 +46,7 @@ const STORE='gather-review-v1';const HOUR=3600000;let role='member',view='schedu
 const now=()=>Date.now()+offset;
 function dayKey(t=now()){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Singapore',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(t));const v=k=>parts.find(p=>p.type===k).value;return v('year')+'-'+v('month')+'-'+v('day');}
 function addDays(d,n){return dayKey(Date.parse(d+'T12:00:00+08:00')+n*86400000);}
-function dateLabel(d,opts={day:'numeric',month:'short'}){return new Date(d+'T12:00:00+08:00').toLocaleDateString(language==='zh'?'zh-CN':'en-GB',opts);}
+function dateLabel(d,opts={day:'numeric',month:'short'}){return new Date(d+'T12:00:00+08:00').toLocaleDateString(language==='zh'?'zh-CN':'en-GB',{...opts,timeZone:'Asia/Kuala_Lumpur'});}
 function stamp(d,t){return Date.parse(d+'T'+t+':00+08:00');}
 function timeLabel(t){const [h,m]=t.split(':').map(Number);return language==='zh'?String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'):(h%12||12)+(m?':'+String(m).padStart(2,'0'):'')+(h<12?'am':'pm');}
 function fullStamp(t){return new Date(t).toLocaleString(language==='zh'?'zh-CN':'en-GB',{timeZone:'Asia/Singapore',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:language!=='zh'});}
@@ -171,4 +171,4 @@ const toastBase=toast;toast=function(text){toastBase(translateText(text));};
 try{language=localStorage.getItem('gather-language')==='zh'?'zh':'en';}catch{}
 
 
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script><script src="/live.js"></script><script src="/recurring.js"></script><script src="/booking-ui.js"></script><script src="/booking-flow.js"></script><script src="/assistant-ui.js"></script><script src="/member-tools.js"></script><script src="/ux.js"></script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script><script src="/live.js"></script><script src="/recurring.js"></script><script src="/booking-ui.js"></script><script src="/booking-flow.js"></script><script src="/assistant-ui.js"></script><script src="/member-tools.js"></script><script src="/updates.js"></script><script src="/ux.js"></script></body></html>

@@ -106,5 +106,15 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert(await page.locator('#modal .modal-head button').isVisible());await page.evaluate(()=>closeModal());
  await page.locator('.selected-day-actions .primary').click();assert(await page.locator('.slot-scroll').isVisible());
  for(const width of [1024,1280,1440]){await page.setViewportSize({width,height:900});await page.evaluate(()=>{mode='calendar';render()});await noPageOverflow();}
+ await page.evaluate(()=>{role='admin';render();adminAgendaDate=selected;openAdminAgenda('week')});
+ assert(await page.locator('.admin-agenda-item').count()>0);
+ await page.screenshot({path:'/tmp/venue-ux-shots/desktop-agenda.png'});
+ await page.setViewportSize({width:390,height:844});
+ assert(await page.locator('#modal').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
+ await page.screenshot({path:'/tmp/venue-ux-shots/mobile-agenda.png'});
+ await page.evaluate(async()=>{closeModal();db={rpc:async()=>({data:{unread:1,items:[{id:'fixture-notice',booking_id:'busy-0',kind:'confirmed',title:'Bible study',date:selected,start:'09:00',room:1,read_at:null}]},error:null})};await openNotifications()});
+ assert.equal(await page.locator('.notification-item.unread').count(),1);
+ await page.screenshot({path:'/tmp/venue-ux-shots/mobile-notifications.png'});
+ await page.evaluate(()=>closeModal());await noPageOverflow();
  assert.deepEqual(errors,[]);await browser.close();console.log('PASS: 390px/1440px layouts, no page/modal overflow, mobile navigation and assistant separation, collapsible edits, Chinese controls and no browser errors.');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -358,3 +358,22 @@ body.slots-expanded .assistant-launcher { display:none; }
  .slot-workspace.is-expanded { inset:0 0 calc(64px + env(safe-area-inset-bottom)); border-radius:0; padding-top:env(safe-area-inset-top); }
  body:has(.slot-workspace) .main { padding-bottom:calc(88px + env(safe-area-inset-bottom)); }
 }
+/* Notification inbox and day/week operations. */
+.account-controls > .notification-button { display:inline-flex!important; min-height:44px; }
+.notification-list { display:grid; margin-top:16px; }
+.notification-item { display:grid; gap:4px; width:100%; text-align:left; padding:16px; border-bottom:1px solid var(--line); }
+.notification-item.unread { background:var(--pale); border-left:3px solid var(--green); }
+.notification-item small { font-size:13px; }
+.agenda-tools { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.agenda-tools input { min-height:44px; max-width:100%; }
+.agenda-date-heading { padding:20px 0 10px; }
+.admin-agenda-item { display:grid; gap:6px; padding:16px; width:100%; text-align:left; border:1px solid var(--line); border-radius:12px; margin-bottom:10px; }
+.occurrence-change { display:block; overflow-wrap:anywhere; line-height:1.6; }
+#modal .repeat-date { align-items:flex-start; flex-wrap:wrap; }
+#modal .repeat-date small { margin-left:30px; }
+@media(max-width:700px){
+ .topbar { flex-wrap:wrap; }
+ .account-controls { gap:6px; margin-left:auto; }
+ .account-controls > .notification-button { font-size:13px; padding:8px; }
+ .notification-item { padding:14px 10px; }
+}

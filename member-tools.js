@@ -111,7 +111,7 @@ function occurrenceControl(key,label,type,value){
 function openOccurrenceEditor(id,scope='one',operation='edit'){
  const b=bookings.find(x=>x.id===id);if(!canManageOccurrence(b))return toast('Choose an upcoming active occurrence.');
  occurrencePreview=null;
- showModal(modalHead(rt(operation==='edit'?'Edit occurrences':'Skip occurrences'),esc(b.title)+' · '+esc(b.date))+'<form id="occurrence-form" onsubmit="previewOccurrence(event)"><div class="modal-body"><label class="field"><span>'+rt('Apply to')+'</span><select name="scope" onchange="changeOccurrenceScope(this.form,this.value)"><option value="one" '+(scope==='one'?'selected':'')+'>'+rt('This date')+'</option><option value="future" '+(scope==='future'?'selected':'')+'>'+rt('This and future dates')+'</option></select></label><p class="section-note">'+rt('Cancelled dates stay cancelled. Past dates are unchanged.')+'</p>'+(operation==='edit'?'<p class="section-note">'+rt('Only checked fields will change.')+' '+rt('Changes to venue, date or time restart approval.')+'</p><div class="form-grid">'+occurrenceFields.filter(([key])=>key!=='date'||scope==='one').map(([key,label,type])=>occurrenceControl(key,label,type,b[key])).join('')+'</div>':'')+'<div class="form-error" id="form-error" role="alert"></div><div id="occurrence-preview" aria-live="polite"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="openDetail(\''+id+'\')">'+rt('Back')+'</button><button class="primary" type="submit">'+rt('Preview changes')+'</button></div></form>');
+ showModal(modalHead(rt(operation==='edit'?'Edit occurrences':'Skip occurrences'),esc(b.title)+' · '+esc(b.date))+'<form id="occurrence-form" onsubmit="previewOccurrence(event)"><div class="modal-body"><label class="field"><span>'+rt('Apply to')+'</span><select name="scope" onchange="changeOccurrenceScope(this.form,this.value)"><option value="one" '+(scope==='one'?'selected':'')+'>'+rt('This date')+'</option><option value="selected" '+(scope==='selected'?'selected':'')+'>'+rt('Selected dates')+'</option><option value="future" '+(scope==='future'?'selected':'')+'>'+rt('This and future dates')+'</option></select></label><p class="section-note">'+rt('Cancelled dates stay cancelled. Past dates are unchanged.')+'</p>'+(operation==='edit'?'<p class="section-note">'+rt('Only checked fields will change.')+' '+rt('Changes to venue, date or time restart approval.')+'</p><div class="form-grid">'+occurrenceFields.filter(([key])=>key!=='date'||scope==='one').map(([key,label,type])=>occurrenceControl(key,label,type,b[key])).join('')+'</div>':'')+'<div class="form-error" id="form-error" role="alert"></div><div id="occurrence-preview" aria-live="polite"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="openDetail(\''+id+'\')">'+rt('Back')+'</button><button class="primary" type="submit">'+rt('Preview changes')+'</button></div></form>');
  const f=document.getElementById('occurrence-form');f.dataset.id=id;f.dataset.operation=operation;
  f.addEventListener('input',e=>{if(e.target.name==='value_contact')delete f.dataset.autoContact;if(e.target.name!=='edit_id')invalidateOccurrencePreview();else updateOccurrenceSelection();});
 }
@@ -152,6 +152,19 @@ function occurrencePayload(form){
  for(const [key]of occurrenceFields)if(form.elements['change_'+key]?.checked)patch[key]=key==='room'?Number(form.elements['value_'+key].value):form.elements['value_'+key].value;
  return {id:form.dataset.id,scope:form.elements.scope.value,operation:form.dataset.operation,patch};
 }
+function occurrenceComparison(row,payload){
+ const original=bookings.find(b=>b.id===row.id);
+ const schedule=(date,room,start,end)=>esc(date)+' · '+esc(roomName(room))+' · '+esc(start)+'–'+esc(end);
+ const before=original?schedule(original.date,original.room,original.start,original.end):esc(row.date);
+ let after=payload.operation==='cancel'?rt('Cancelled'):schedule(row.new_date,row.room,row.start,row.end);
+ let details='';
+ if(payload.operation==='edit'&&original)for(const [key,label]of occurrenceFields){
+  if(['room','date','start','end'].includes(key)||!(key in payload.patch))continue;
+  if(String(original[key]??'')===String(payload.patch[key]??''))continue;
+  details+='<span class="occurrence-change"><strong>'+rt(label)+'</strong>: '+esc(String(original[key]??'—'))+' → '+esc(String(payload.patch[key]??'—'))+'</span>';
+ }
+ return '<span class="occurrence-change"><strong>'+rt('Before')+'</strong>: '+before+'</span><span class="occurrence-change"><strong>'+rt('After')+'</strong>: '+after+'</span>'+details;
+}
 function occurrenceSnapshot(rows){return Object.fromEntries(rows.map(r=>[r.id,r.version]));}
 function selectedOccurrenceRows(form){return (occurrencePreview?.rows||[]).filter(r=>[...form.querySelectorAll('[name="edit_id"]:checked')].some(e=>e.value===r.id));}
 async function previewOccurrence(event){
@@ -163,7 +176,7 @@ async function previewOccurrence(event){
   const rows=await memberRpc('venue_series_edit','preview',payload);
   if(revision!==sessionRevision||document.getElementById('occurrence-form')!==form||!document.getElementById('modal').open||signature!==JSON.stringify(occurrencePayload(form)))return;
   occurrencePreview={payload,signature,rows};
-  document.getElementById('occurrence-preview').innerHTML='<h3>'+rt('Review booking')+'</h3><p>'+rt('Choose which dates to include. Unchecked dates stay unchanged.')+'</p><div class="repeat-dates">'+rows.map(r=>'<label class="repeat-date '+(r.available?'':'clash')+'"><input type="checkbox" name="edit_id" value="'+r.id+'" '+(r.available?(payload.scope==='one'||!r.exception?'checked':''):'disabled')+'><span>'+esc(r.date)+(r.new_date!==r.date?' → '+esc(r.new_date):'')+' · '+esc(roomName(r.room))+' · '+esc(r.start)+'–'+esc(r.end)+(r.exception?' · '+rt('Previously modified'):'')+'</span><small>'+rt(r.available?(payload.operation==='cancel'?'Cancel':r.reapproval?'Approval restarts':'Available'):r.reason)+'</small></label>').join('')+'</div><button type="button" class="'+(payload.operation==='cancel'?'danger':'primary')+'" id="occurrence-confirm" onclick="confirmOccurrence()">'+rt(payload.operation==='cancel'?'Confirm cancellation':'Confirm changes')+'</button>';
+  document.getElementById('occurrence-preview').innerHTML='<h3>'+rt('Review booking')+'</h3><p>'+rt(form.elements.scope.value==='selected'?'Choose dates below. Nothing is selected automatically.':'Choose which dates to include. Unchecked dates stay unchanged.')+'</p><div class="repeat-dates">'+rows.map(r=>'<label class="repeat-date '+(r.available?'':'clash')+'"><input type="checkbox" name="edit_id" value="'+r.id+'" '+(r.available?(payload.scope==='one'||(form.elements.scope.value!=='selected'&&!r.exception)?'checked':''):'disabled')+'><span>'+occurrenceComparison(r,payload)+(r.exception?' · '+rt('Previously modified'):'')+'</span><small>'+rt(r.available?(payload.operation==='cancel'?'Cancel':r.reapproval?'Approval restarts':'Available'):r.reason)+'</small></label>').join('')+'</div><button type="button" class="'+(payload.operation==='cancel'?'danger':'primary')+'" id="occurrence-confirm" onclick="confirmOccurrence()">'+rt(payload.operation==='cancel'?'Confirm cancellation':'Confirm changes')+'</button>';
   updateOccurrenceSelection();document.getElementById('occurrence-preview').scrollIntoView({block:'nearest',behavior:'smooth'});
  }catch(error){if(revision===sessionRevision&&document.getElementById('occurrence-form')===form)repeatError(error);}
  finally{occurrenceBusy=false;form.querySelector('[type="submit"]').disabled=false;}
@@ -194,7 +207,7 @@ function openMyRecurring(){
 }
 function chooseRecurringAction(id){
  const b=bookings.find(x=>x.id===id);if(!canManageOccurrence(b))return;
- showModal(modalHead(esc(b.title),esc(b.date)+' · '+esc(roomName(b.room)))+'<div class="modal-body"><p>'+rt('Apply to')+'</p>'+['one','future'].map(scope=>'<section class="assistant-choices"><strong>'+rt(scope==='one'?'This date':'This and future dates')+'</strong><button class="secondary" onclick="openOccurrenceEditor(\''+id+'\',\''+scope+'\',\'edit\')">'+rt('Edit')+'</button><button class="danger" onclick="openOccurrenceEditor(\''+id+'\',\''+scope+'\',\'cancel\')">'+rt('Cancel')+'</button></section>').join('')+'</div>');
+ showModal(modalHead(esc(b.title),esc(b.date)+' · '+esc(roomName(b.room)))+'<div class="modal-body"><p>'+rt('Apply to')+'</p>'+['one','selected','future'].map(scope=>'<section class="assistant-choices"><strong>'+rt(scope==='one'?'This date':scope==='selected'?'Selected dates':'This and future dates')+'</strong><button class="secondary" onclick="openOccurrenceEditor(\''+id+'\',\''+scope+'\',\'edit\')">'+rt('Edit')+'</button><button class="danger" onclick="openOccurrenceEditor(\''+id+'\',\''+scope+'\',\'cancel\')">'+rt('Cancel')+'</button></section>').join('')+'</div>');
 }
 let assistantOnBehalf=false,assistantProfileData=null;
 const assistantOpenWithProfile=openAssistant;
