@@ -32,6 +32,20 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  await page.screenshot({path:'/tmp/venue-ux-shots/mobile-calendar.png'});
  await page.evaluate(()=>setMode('venues'));await noPageOverflow();
  await page.screenshot({path:'/tmp/venue-ux-shots/mobile-slots.png'});
+ assert((await page.locator('.slot-scroll').boundingBox()).height>560,'larger default slot scrolling area');
+ await page.locator('.slot-expand').click();
+ assert(await page.locator('.slot-workspace').evaluate(e=>e.classList.contains('is-expanded')));
+ const expandedGrid=await page.locator('.slot-scroll').boundingBox();
+ assert(expandedGrid.height>480,'expanded timetable has room for more rows');
+ await noPageOverflow();
+ await page.screenshot({path:'/tmp/venue-ux-shots/mobile-slots-expanded.png'});
+ await page.evaluate(()=>{const grid=document.querySelector('.slot-scroll');grid.scrollTop=250;grid.scrollLeft=100;pickSlot(1,12);pickSlot(1,13)});
+ assert.equal(await page.locator('.slot-scroll').evaluate(e=>e.scrollTop),250);
+ assert.equal(await page.locator('.slot-scroll').evaluate(e=>e.scrollLeft),100);
+ await page.evaluate(()=>render());assert(await page.locator('.slot-workspace').evaluate(e=>e.classList.contains('is-expanded')));
+ await page.locator('.slot-expand').click();assert(!await page.locator('body').evaluate(e=>e.classList.contains('slots-expanded')));
+ await page.evaluate(()=>clearSlotSelection());
+
  const nav=await page.locator('.sidebar').boundingBox(),assistant=await page.locator('#assistant-launcher').boundingBox();
  assert(assistant.y+assistant.height<=nav.y,'assistant overlaps bottom navigation');
  await page.evaluate(()=>openForm(4));
@@ -63,7 +77,8 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert(await page.evaluate(()=>document.querySelector('.slot-scroll').scrollTop>0));
  const slot=await page.locator('.time-slot[data-slot="26"]').boundingBox();
  const head=await page.locator('.slot-table thead th').first().boundingBox();
- assert(slot.y>=head.y+head.height-1 && slot.y<head.y+head.height+150,'next free slot should be visible below header');
+ const visibleGrid=await page.locator('.slot-scroll').boundingBox();
+ assert(slot.y>=head.y+head.height-1 && slot.y+slot.height<=visibleGrid.y+visibleGrid.height+1,'next free slot should be visible below header');
  const initialScroll=await page.locator('.slot-scroll').evaluate(e=>e.scrollTop);
  await page.evaluate(()=>{pickSlot(1,26);pickSlot(1,27);render()});
  assert.equal(await page.locator('.slot-scroll').evaluate(e=>e.scrollTop),initialScroll,'selection/refresh must preserve scroll');

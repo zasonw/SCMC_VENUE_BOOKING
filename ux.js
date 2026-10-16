@@ -1,5 +1,6 @@
 'use strict';
 Object.assign(translations,{
+ 'Expand':'放大','Done':'完成',
  'Skip to content':'跳到主要内容','Booking slots':'预约时段',
  'View day':'查看当天','View slots':'查看时段','more':'更多','Status':'状态','Filters':'筛选','Next available':'下个可用时段','No available slots on this date.':'此日期没有可用时段', 'Account':'账号','Venue booking':'场地预约','Choose a date or open Slots to book.':'选择日期 或打开时段直接预约',
  'Your bookings':'我的预约','Manage your upcoming dates.':'查看和管理未来预约','Rooms':'场地',
@@ -21,6 +22,23 @@ function openAccountMenu(){
 }
 showAgenda=function(){showModal(modalHead(rt('Selected day'))+agendaHTML());};
 let phoneFiltersOpen=false;
+let slotsExpanded=false;
+function toggleSlotWorkspace(){
+ slotsExpanded=!slotsExpanded;applySlotWorkspace();
+}
+function applySlotWorkspace(){
+ const grid=document.querySelector('.slot-scroll');
+ const expanded=!!grid&&slotsExpanded;
+ document.body.classList.toggle('slots-expanded',expanded);
+ const panel=grid?.closest('.panel');
+ panel?.classList.add('slot-workspace');
+ panel?.classList.toggle('is-expanded',expanded);
+ const button=document.querySelector('.slot-expand');
+ if(button){button.textContent=rt(expanded?'Done':'Expand');button.setAttribute('aria-pressed',String(expanded));}
+}
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'&&slotsExpanded&&!document.getElementById('modal').open){slotsExpanded=false;applySlotWorkspace();document.querySelector('.slot-expand')?.focus({preventScroll:true});}
+});
 const uxRenderBase=render;
 render=function(){
  uxRenderBase();
@@ -61,6 +79,7 @@ render=function(){
   const button=document.createElement('button');button.type='button';button.className='phone-filter-toggle secondary';button.textContent=rt('Status');button.setAttribute('aria-expanded',String(phoneFiltersOpen||!!statusFilter));button.onclick=()=>{phoneFiltersOpen=!filters.classList.contains('phone-filters-open');filters.classList.toggle('phone-filters-open',phoneFiltersOpen);button.setAttribute('aria-expanded',String(phoneFiltersOpen));};
   filters.querySelector('select')?.after(button);
  }
+ applySlotWorkspace();
  document.getElementById('account-controls').insertAdjacentHTML('beforeend','<button class="secondary ux-account-button" onclick="openAccountMenu()">'+rt('Account')+'</button>');
 };
 Object.assign(translations,{'Venue Booking':'场地预约','Day':'日期','Choose date':'选择日期','Choose month':'选择月份','Month':'月份','Year':'年份','Go':'前往'});
@@ -93,7 +112,7 @@ const uxSlotGrid=slotGridHTML;
 slotGridHTML=function(){
  let html=uxSlotGrid();
  const controls='<div class="ux-day-controls"><button type="button" class="secondary" onclick="shiftDay(-1)">'+rt('Previous day')+'</button><button type="button" class="secondary" onclick="selectDay(dayKey())">'+rt('Today')+'</button><button type="button" class="secondary" onclick="shiftDay(1)">'+rt('Next day')+'</button></div><p class="ux-slot-hint">'+rt('Tap a start slot, then an end slot.')+' '+rt('Swipe to see more rooms.')+'</p>';
- return html.replace('<div class="slot-legend">',controls+'<div class="ux-slot-jump"><button type="button" class="secondary" onclick="jumpToAvailableSlot()">'+rt('Next available')+'</button><span class="slot-availability-message" role="status" hidden>'+rt('No available slots on this date.')+'</span></div><div class="slot-legend">');
+ return html.replace('<div class="slot-legend">',controls+'<div class="ux-slot-jump"><button type="button" class="secondary slot-expand" onclick="toggleSlotWorkspace()" aria-pressed="false">'+rt('Expand')+'</button><button type="button" class="secondary" onclick="jumpToAvailableSlot()">'+rt('Next available')+'</button><span class="slot-availability-message" role="status" hidden>'+rt('No available slots on this date.')+'</span></div><div class="slot-legend">');
 };
 function uxSection(title,n,fields){
  const section=document.createElement('section');section.className='ux-form-section wide';
