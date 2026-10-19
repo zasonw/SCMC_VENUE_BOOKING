@@ -20,6 +20,11 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
   bookings=[{id:'00000000-0000-0000-0000-000000000001',series_id:'series',owner:'member',room:3,date:selected,start:'09:00',end:'11:00',title:'Bible study',group:'乐龄团契',pic:'Jason',contact:'',notes:'',status:'confirmed',history:[],created:Date.now(),booked_by:'Jason'}];
   render();
  });
+ const brand=await page.locator('.header .primary').evaluate(e=>({bg:getComputedStyle(e).backgroundColor,fg:getComputedStyle(e).color}));
+ assert.equal(brand.bg,'rgb(0, 88, 164)','logo blue applied to primary actions');
+ const luminance=color=>{const channels=color.match(/\d+/g).slice(0,3).map(Number).map(n=>{const v=n/255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return channels[0]*.2126+channels[1]*.7152+channels[2]*.0722};
+ const ratio=(a,b)=>{const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+ assert(ratio(brand.bg,brand.fg)>=4.5,'primary button text contrast');
  const noPageOverflow=async()=>assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'page overflow');
  await noPageOverflow();
  assert(!await page.locator('.filters select').last().isVisible());

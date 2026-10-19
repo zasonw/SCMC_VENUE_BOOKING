@@ -111,3 +111,7 @@ Voice pause update: continuous dictation now survives normal speech pauses, rest
 - **Agenda** is available to admins from Requests and the desktop management toolbar. Today/This week, previous/next, and date selection show active bookings with purpose, fellowship and PIC. Weeks run Monday–Sunday in Malaysia time.
 - Database setup for existing installations: apply `database/notifications.sql`, then `database/selected-dates.sql`, after the existing profile/series setup. Both have been applied to the live project. The notification table is private with direct client access revoked; its RPC verifies identity and recipient ownership.
 - Checks: `npm test --prefix tests`; optional Playwright `tests/ux-browser.cjs`; rollback-only SQL suites `tests/notifications.sql`, `tests/profile-series.sql`, and `tests/selected-dates.sql`.
+
+### SCMC visual system
+
+`brand.css` loads last and owns the logo-derived design tokens: blue `#0058A4` for primary actions/selection, gold `#FFD21C` for small identity accents, neutral blue-grey surfaces, and separate green/amber/slate booking states. Keep success green, including the submit morph. White text on the primary blue is checked for WCAG AA contrast. The legacy `--green` variable aliases the brand blue for existing components; new styles should use `--brand`, `--success`, or `--pending` according to meaning. The stylesheet also fixes the desktop day agenda to a single readable column. No backend or booking-permission changes are part of this visual update.
