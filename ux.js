@@ -1,5 +1,6 @@
 'use strict';
 Object.assign(translations,{
+ 'Help':'帮助','Language':'语言',
  'Expand':'放大','Done':'完成',
  'Skip to content':'跳到主要内容','Booking slots':'预约时段',
  'View day':'查看当天','View slots':'查看时段','more':'更多','Status':'状态','Filters':'筛选','Next available':'下个可用时段','No available slots on this date.':'此日期没有可用时段', 'Account':'账号','Venue booking':'场地预约','Choose a date or open Slots to book.':'选择日期 或打开时段直接预约',
@@ -15,10 +16,12 @@ Object.assign(translations,{
 });
 function openAccountMenu(){
  showModal(modalHead(rt('Account'))+'<div class="modal-body ux-account-menu"><div class="ux-account-identity"><strong>'+esc(session?me:rt('Guest'))+'</strong><span>'+rt(session?(role==='admin'?'Admin':'Member'):'Sign in or register to book.')+'</span></div>'+
- (session?'<button class="secondary" onclick="openProfile()">'+rt('My profile')+'</button><button class="secondary" onclick="closeModal();navigate(\'mine\')">'+rt('My bookings')+'</button>'+
+ (session?'<button class="secondary" onclick="openNotifications()">'+rt('Notifications')+(notificationState.unread?' ('+notificationState.unread+')':'')+'</button><button class="secondary" onclick="openProfile()">'+rt('My profile')+'</button><button class="secondary" onclick="closeModal();navigate(\'mine\')">'+rt('My bookings')+'</button>'+
  (role==='admin'?'<button class="secondary" onclick="manageUsers()">'+rt('Users')+'</button><button class="secondary" onclick="managePeople()">'+rt('People')+'</button><button class="secondary" onclick="manageRooms()">'+rt('Rooms')+'</button>':'')+
  '<button class="secondary" onclick="signOut()">'+rt('Sign out')+'</button>':
  '<button class="primary" onclick="authForm()">'+rt('Sign in')+'</button><button class="secondary" onclick="authForm(\'signup\')">'+rt('Register')+'</button>')+'<button class="secondary" onclick="closeModal();refreshLive()">'+rt('Refresh')+'</button></div>');
+ const languages=document.querySelector('.topbar .language-switch')?.cloneNode(true);
+ if(languages){languages.setAttribute('aria-label',rt('Language'));document.querySelector('.ux-account-menu').prepend(languages);}
 }
 showAgenda=function(){showModal(modalHead(rt('Selected day'))+agendaHTML());};
 let phoneFiltersOpen=false;
@@ -64,7 +67,7 @@ render=function(){
   if(layout){
    const bar=document.createElement('div');bar.className='selected-day-bar';
    bar.innerHTML='<div><small>'+rt('Selected day')+'</small><strong>'+dateLabel(selected,{weekday:'short',day:'numeric',month:'short'})+'</strong></div><div class="selected-day-actions"><button class="secondary" onclick="showAgenda()">'+rt('View day')+'</button><button class="primary" onclick="setMode(\'venues\')">'+rt('View slots')+'</button></div>';
-   layout.before(bar);
+   layout.after(bar);
   }
   document.querySelectorAll('.calendar-grid .day').forEach(day=>{
    const chips=[...day.querySelectorAll('.event-chip')];if(chips.length<=3)return;
@@ -75,8 +78,8 @@ render=function(){
  }
  const filters=document.querySelector('.filters');
  if(filters){
-  filters.classList.toggle('phone-filters-open',phoneFiltersOpen||!!statusFilter);
-  const button=document.createElement('button');button.type='button';button.className='phone-filter-toggle secondary';button.textContent=rt('Status');button.setAttribute('aria-expanded',String(phoneFiltersOpen||!!statusFilter));button.onclick=()=>{phoneFiltersOpen=!filters.classList.contains('phone-filters-open');filters.classList.toggle('phone-filters-open',phoneFiltersOpen);button.setAttribute('aria-expanded',String(phoneFiltersOpen));};
+  filters.classList.toggle('phone-filters-open',phoneFiltersOpen);
+  const button=document.createElement('button');button.type='button';button.className='phone-filter-toggle secondary';button.textContent=rt('Filters')+((roomFilter||statusFilter)?' ('+[roomFilter,statusFilter].filter(Boolean).length+')':'');button.setAttribute('aria-expanded',String(phoneFiltersOpen));button.onclick=()=>{phoneFiltersOpen=!filters.classList.contains('phone-filters-open');filters.classList.toggle('phone-filters-open',phoneFiltersOpen);button.setAttribute('aria-expanded',String(phoneFiltersOpen));};
   filters.querySelector('select')?.after(button);
  }
  applySlotWorkspace();
@@ -111,7 +114,7 @@ calendarHTML=function(){
 const uxSlotGrid=slotGridHTML;
 slotGridHTML=function(){
  let html=uxSlotGrid();
- const controls='<div class="ux-day-controls"><button type="button" class="secondary" onclick="shiftDay(-1)">'+rt('Previous day')+'</button><button type="button" class="secondary" onclick="selectDay(dayKey())">'+rt('Today')+'</button><button type="button" class="secondary" onclick="shiftDay(1)">'+rt('Next day')+'</button></div><p class="ux-slot-hint">'+rt('Tap a start slot, then an end slot.')+' '+rt('Swipe to see more rooms.')+'</p>';
+ const controls='<div class="ux-day-controls"><button type="button" class="secondary" onclick="shiftDay(-1)">'+rt('Previous day')+'</button><button type="button" class="secondary" onclick="selectDay(dayKey())">'+rt('Today')+'</button><button type="button" class="secondary" onclick="shiftDay(1)">'+rt('Next day')+'</button></div><details class="slot-help"><summary>'+rt('Help')+'</summary><p class="ux-slot-hint">'+rt('Tap a start slot, then an end slot.')+' '+rt('Swipe to see more rooms.')+'</p></details>';
  return html.replace('<div class="slot-legend">',controls+'<div class="ux-slot-jump"><button type="button" class="secondary slot-expand" onclick="toggleSlotWorkspace()" aria-pressed="false">'+rt('Expand')+'</button><button type="button" class="secondary" onclick="jumpToAvailableSlot()">'+rt('Next available')+'</button><span class="slot-availability-message" role="status" hidden>'+rt('No available slots on this date.')+'</span></div><div class="slot-legend">');
 };
 function uxSection(title,n,fields){

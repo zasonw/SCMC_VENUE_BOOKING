@@ -27,12 +27,15 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert(ratio(brand.bg,brand.fg)>=4.5,'primary button text contrast');
  const noPageOverflow=async()=>assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'page overflow');
  await noPageOverflow();
+ assert(!await page.locator('.topbar > .language-switch').isVisible());
+ assert(!await page.locator('.calendar-layout > .agenda').isVisible());
+ assert(!await page.locator('.filters select').first().isVisible());
  assert(!await page.locator('.filters select').last().isVisible());
  await page.locator('.phone-filter-toggle').click();assert(await page.locator('.filters select').last().isVisible());
  await page.locator('.phone-filter-toggle').click();assert(!await page.locator('.filters select').last().isVisible());
  for(const width of [320,430]){await page.setViewportSize({width,height:844});await noPageOverflow();}
  await page.setViewportSize({width:390,height:844});
- await page.evaluate(()=>openAccountMenu());assert(await page.locator('#modal button').filter({hasText:'Refresh'}).isVisible());await page.evaluate(()=>closeModal());
+ await page.evaluate(()=>openAccountMenu());assert(await page.locator('#modal .language-switch').isVisible());assert(await page.locator('#modal button').filter({hasText:'Refresh'}).isVisible());await page.evaluate(()=>closeModal());
  fs.mkdirSync('/tmp/venue-ux-shots',{recursive:true});
  await page.screenshot({path:'/tmp/venue-ux-shots/mobile-calendar.png'});
  await page.evaluate(()=>setMode('venues'));await noPageOverflow();

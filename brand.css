@@ -156,3 +156,32 @@ button:disabled { cursor:not-allowed; }
 @media(min-width:1000px) {
  .sidebar .brand-sub::after { content:''; display:block; width:28px; height:3px; border-radius:2px; margin-top:12px; background:var(--gold); }
 }
+/* Phone progressive disclosure: one primary workspace at a time. */
+.slot-help summary { cursor:pointer; padding:10px 12px; min-height:44px; font-size:13px; color:var(--brand); }
+.slot-help .ux-slot-hint { padding-top:0; }
+.ux-account-menu .language-switch button { flex:1; text-align:center; justify-content:center; }
+@media(max-width:700px) {
+ .topbar > .language-switch { display:none; }
+ .topbar { justify-content:flex-end; margin-bottom:8px; }
+ .topbar .account-controls { flex-wrap:nowrap; }
+ .header { margin-bottom:12px; }
+ .connection-bar { margin-bottom:8px; min-height:0; font-size:12px; }
+ .connection-bar:has(#sync-status:empty) { display:none; }
+ #content > .toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:8px; }
+ #content > .toolbar > .seg { width:auto; }
+ #content > .toolbar .filters { width:auto; display:flex; flex-direction:column; align-items:stretch; gap:8px; }
+ .filters .phone-filter-toggle { order:-1; min-height:48px; padding:8px 12px; }
+ .filters select,.filters select:last-child { display:none; }
+ #content > .toolbar:has(.phone-filters-open) { grid-template-columns:1fr; }
+ #content > .toolbar .filters.phone-filters-open { display:grid; grid-template-columns:1fr 1fr; width:100%; }
+ .filters.phone-filters-open .phone-filter-toggle { grid-column:1/-1; justify-self:end; }
+ .filters.phone-filters-open select,.filters.phone-filters-open select:last-child { display:block; grid-column:auto; min-width:0; width:100%; }
+ .calendar-layout > .agenda { display:none; }
+ .selected-day-bar { margin:10px 0 0; padding:10px; }
+ .selected-day-bar small { display:none; }
+ .selected-day-actions button { min-height:44px; }
+ .slot-workspace .ux-day-controls { display:none; }
+ .slot-workspace .slot-help { border-bottom:1px solid var(--line); }
+ .slot-workspace .ux-slot-jump { padding-top:8px; }
+ .slot-workspace.is-expanded .slot-help { display:none; }
+}
