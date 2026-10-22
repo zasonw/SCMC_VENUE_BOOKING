@@ -185,3 +185,39 @@ button:disabled { cursor:not-allowed; }
  .slot-workspace .ux-slot-jump { padding-top:8px; }
  .slot-workspace.is-expanded .slot-help { display:none; }
 }
+
+/* Compact phone overview; retain full management layout on larger screens. */
+.phone-brand,.phone-booking-count { display:none; }
+.account-unread { display:inline-grid; place-items:center; min-width:18px; height:18px; margin-left:4px; padding:0 4px; border-radius:10px; background:var(--brand); color:white; font-size:11px; }
+@media(max-width:700px) {
+ .topbar { display:flex; flex-wrap:nowrap; justify-content:space-between; gap:6px; margin-bottom:10px; }
+ .phone-brand { display:flex; align-items:center; gap:4px; font-size:15px; white-space:nowrap; }
+ .phone-brand img { object-fit:contain; }
+ .topbar > .language-switch { display:flex; margin-left:auto; flex-shrink:0; }
+ .topbar .language-switch button { padding:6px 8px; min-width:40px; min-height:44px; }
+ .topbar .account-controls { gap:0; flex-shrink:0; }
+ .account-controls > .notification-button { display:none!important; }
+ .topbar .ux-account-button { min-height:44px; padding:8px; font-size:13px; }
+ .header { margin-bottom:10px; }
+ .header h1 { font-size:22px; }
+ .connection-bar.sync-idle { display:none; }
+ .toolbar > .seg { padding:3px; border-radius:10px; }
+ .toolbar > .seg button { min-height:44px; padding:6px 12px; }
+ .filters .phone-filter-toggle { min-height:50px; }
+ .calendar-layout .panel-head { padding:10px 12px; gap:4px; }
+ .calendar-layout .panel-head h2 { font-size:17px; }
+ .month-controls { gap:0; }
+ .month-controls button { min-width:44px; min-height:44px; padding:6px; font-size:12px; }
+ .month-controls .today-btn { margin-right:0; }
+ .weekdays { padding:7px 0; letter-spacing:0; }
+ .calendar-grid .day { min-height:62px; padding:4px 3px; }
+ .calendar-grid .day-num { width:26px; height:26px; margin:0; }
+ .calendar-grid .event-chip,.calendar-grid .calendar-more { display:none; }
+ .phone-booking-count { display:block; padding:0 5px; height:24px; min-width:24px; border-radius:5px; background:var(--brand-soft); color:var(--brand); font-size:12px; font-weight:650; }
+ .calendar-layout .legend { padding:8px 10px; gap:8px; font-size:11px; }
+ .slot-workspace .slot-date { padding:8px 12px; }
+ .slot-workspace .slot-legend { padding:8px 12px; }
+ .slot-workspace:not(.is-expanded) .slot-proceed { position:fixed; left:12px; right:12px; bottom:calc(64px + env(safe-area-inset-bottom)); padding:10px 12px; z-index:30; border:1px solid var(--line); border-radius:12px; box-shadow:0 -4px 18px #18324b0a; }
+ body:has(.slot-workspace) .assistant-launcher { bottom:calc(140px + env(safe-area-inset-bottom)); }
+ .assistant-launcher { width:44px; height:44px; right:10px; bottom:calc(66px + env(safe-area-inset-bottom)); }
+}

@@ -1,6 +1,6 @@
 'use strict';
 Object.assign(translations,{
- 'Help':'帮助','Language':'语言',
+ 'Help':'帮助','Language':'语言','Prev':'上月','Bookings':'预约',
  'Expand':'放大','Done':'完成',
  'Skip to content':'跳到主要内容','Booking slots':'预约时段',
  'View day':'查看当天','View slots':'查看时段','more':'更多','Status':'状态','Filters':'筛选','Next available':'下个可用时段','No available slots on this date.':'此日期没有可用时段', 'Account':'账号','Venue booking':'场地预约','Choose a date or open Slots to book.':'选择日期 或打开时段直接预约',
@@ -23,7 +23,16 @@ function openAccountMenu(){
  const languages=document.querySelector('.topbar .language-switch')?.cloneNode(true);
  if(languages){languages.setAttribute('aria-label',rt('Language'));document.querySelector('.ux-account-menu').prepend(languages);}
 }
+function updateAccountUnread(){
+ const button=document.querySelector('.ux-account-button');if(!button)return;
+ button.textContent=rt('Account');
+ if(session&&notificationState.unread){const badge=document.createElement('span');badge.className='account-unread';badge.textContent=notificationState.unread;badge.setAttribute('aria-label',rt('Notifications'));button.append(badge);}
+}
+const uxNotificationButton=notificationButton;
+notificationButton=function(){uxNotificationButton();updateAccountUnread();};
 showAgenda=function(){showModal(modalHead(rt('Selected day'))+agendaHTML());};
+const uxLiveStatus=liveStatus;
+liveStatus=function(text,error=false){uxLiveStatus(text,error);document.querySelector('.connection-bar')?.classList.toggle('sync-idle',text==='Shared calendar'&&!error);};
 let phoneFiltersOpen=false;
 let slotsExpanded=false;
 function toggleSlotWorkspace(){
@@ -54,10 +63,14 @@ render=function(){
  const scroll=document.querySelector('.slot-scroll');
  if(scroll){scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label',rt('Booking slots'));}
 
- document.querySelector('.scmc-brand-logo')?.remove();
+ document.querySelector('.sidebar .scmc-brand-logo')?.remove();
+ const topbar=document.querySelector('.topbar');
+ if(!topbar.querySelector('.phone-brand')){const brand=document.createElement('div');brand.className='phone-brand';brand.innerHTML='<img src="/scmc-mark.png" alt="" width="28" height="28"><strong>SCMC</strong>';topbar.prepend(brand);}
+ const chinese=topbar.querySelector('[data-language=zh]');if(chinese){chinese.textContent='中文';chinese.setAttribute('aria-label','简体中文');}
+ document.querySelector('.connection-bar')?.classList.toggle('sync-idle',lastSyncText==='Shared calendar'&&!lastSyncError);
  document.querySelector('.brand').innerHTML='<img class="scmc-brand-logo" src="/scmc-mark.png" alt="" width="44" height="44"><span>SCMC</span>';
  document.querySelector('.brand-sub').textContent=rt('Venue Booking');
- const titles={schedule:['Venue calendar','Choose a date or open Slots to book.'],mine:['Your bookings','Manage your upcoming dates.'],rooms:['Rooms','Find a room for your gathering.'],admin:['Requests','Review bookings and manage spaces.']};
+ const titles={schedule:['Venue booking','Choose a date or open Slots to book.'],mine:['Your bookings','Manage your upcoming dates.'],rooms:['Rooms','Find a room for your gathering.'],admin:['Requests','Review bookings and manage spaces.']};
  const [title,subtitle]=titles[view]||titles.schedule;
  document.getElementById('heading').textContent=rt(title);document.getElementById('subtitle').textContent=rt(subtitle);
  document.getElementById('nav').setAttribute('aria-label',rt('Venue booking'));
@@ -70,7 +83,9 @@ render=function(){
    layout.after(bar);
   }
   document.querySelectorAll('.calendar-grid .day').forEach(day=>{
-   const chips=[...day.querySelectorAll('.event-chip')];if(chips.length<=3)return;
+   const chips=[...day.querySelectorAll('.event-chip')];
+   if(chips.length){const count=document.createElement('button');count.className='phone-booking-count';count.textContent=String(chips.length);count.setAttribute('aria-label',chips.length+' '+rt('Bookings'));count.onclick=event=>{event.stopPropagation();day.click();showAgenda();};day.append(count);}
+   if(chips.length<=3)return;
    chips.slice(3).forEach(chip=>chip.hidden=true);
    const more=document.createElement('button');more.type='button';more.className='calendar-more';more.textContent='+'+(chips.length-3)+' '+rt('more');
    more.onclick=event=>{event.stopPropagation();day.click();showAgenda();};day.append(more);
@@ -82,8 +97,10 @@ render=function(){
   const button=document.createElement('button');button.type='button';button.className='phone-filter-toggle secondary';button.textContent=rt('Filters')+((roomFilter||statusFilter)?' ('+[roomFilter,statusFilter].filter(Boolean).length+')':'');button.setAttribute('aria-expanded',String(phoneFiltersOpen));button.onclick=()=>{phoneFiltersOpen=!filters.classList.contains('phone-filters-open');filters.classList.toggle('phone-filters-open',phoneFiltersOpen);button.setAttribute('aria-expanded',String(phoneFiltersOpen));};
   filters.querySelector('select')?.after(button);
  }
+ document.querySelectorAll('.month-controls button').forEach(button=>{if(button.textContent.trim()===rt('Previous'))button.textContent=rt('Prev');});
  applySlotWorkspace();
  document.getElementById('account-controls').insertAdjacentHTML('beforeend','<button class="secondary ux-account-button" onclick="openAccountMenu()">'+rt('Account')+'</button>');
+ updateAccountUnread();
 };
 Object.assign(translations,{'Venue Booking':'场地预约','Day':'日期','Choose date':'选择日期','Choose month':'选择月份','Month':'月份','Year':'年份','Go':'前往'});
 function adminMonthPickerAllowed(){return role==='admin'&&!!session&&window.matchMedia('(min-width:768px)').matches;}
