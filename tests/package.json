@@ -1,6 +1,10 @@
 {
   "name": "scmc-booking-tests",
   "private": true,
-  "scripts": {"test": "node member-tools.cjs && node updates.cjs"},
-  "devDependencies": {"jsdom": "26.1.0"}
+  "scripts": {
+    "test": "node member-tools.cjs && node updates.cjs && node frontend.cjs && node booking-ui.cjs && node booking-flow.cjs && node recurring.cjs && node assistant-ui.cjs && node assistant-worker.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
 }

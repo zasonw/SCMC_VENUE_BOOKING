@@ -115,3 +115,12 @@ Voice pause update: continuous dictation now survives normal speech pauses, rest
 ### SCMC visual system
 
 `brand.css` loads last and owns the logo-derived design tokens: blue `#0058A4` for primary actions/selection, gold `#FFD21C` for small identity accents, neutral blue-grey surfaces, and separate green/amber/slate booking states. Keep success green, including the submit morph. White text on the primary blue is checked for WCAG AA contrast. The legacy `--green` variable aliases the brand blue for existing components; new styles should use `--brand`, `--success`, or `--pending` according to meaning. The stylesheet also fixes the desktop day agenda to a single readable column. No backend or booking-permission changes are part of this visual update.
+
+
+### Phone interface and release checks (26 October 2026)
+
+- The phone header shows the SCMC mark, EN / 中文 and Account. Account contains Notifications and shows the unread count beside its label.
+- Phone dates show booking counts; tap a count for the day's booking details. Desktop retains room chips and the day agenda.
+- Filters stay collapsed until opened. In Slots, Continue stays above the phone navigation; Expand opens the larger timetable workspace.
+- Run `npm test --prefix tests` from the repository root for all eight existing unit/integration suites. The browser suite remains separate: `node tests/ux-browser.cjs` with Playwright and Chromium available.
+- Validate the deploy package with `npx wrangler deploy --dry-run` before pushing to `main`. Cloudflare then builds and deploys the commit automatically.

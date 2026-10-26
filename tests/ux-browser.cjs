@@ -36,7 +36,14 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  await page.locator('.phone-filter-toggle').click();assert(await page.locator('.filters select').last().isVisible());
  await page.locator('.phone-filter-toggle').click();assert(!await page.locator('.filters select').last().isVisible());
  for(const width of [320,430]){await page.setViewportSize({width,height:844});await noPageOverflow();}
+ await page.setViewportSize({width:320,height:568});
+ await page.evaluate(()=>{notificationState.unread=125;notificationButton();});
+ await noPageOverflow();
+ await page.locator('.ux-account-button').click();
+ assert(await page.locator('#modal button').filter({hasText:'Notifications (125)'}).isVisible());
+ await page.evaluate(()=>closeModal());
  await page.setViewportSize({width:390,height:844});
+ await page.evaluate(()=>{notificationState.unread=0;notificationButton();});
  await page.evaluate(()=>openAccountMenu());assert(await page.locator('#modal .language-switch').isVisible());assert(await page.locator('#modal button').filter({hasText:'Refresh'}).isVisible());await page.evaluate(()=>closeModal());
  fs.mkdirSync('/tmp/venue-ux-shots',{recursive:true});
  await page.screenshot({path:'/tmp/venue-ux-shots/mobile-calendar.png'});
