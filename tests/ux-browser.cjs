@@ -118,8 +118,10 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
   closeModal();session={user:{id:'fixture'}};role='member';roomFilter='';statusFilter='';mode='calendar';
   bookings=Array.from({length:6},(_,i)=>({id:'busy-'+i,room:1,date:selected,start:'09:00',end:'10:00',status:'confirmed',title:'Activity '+i,group:'Test',pic:'Jason',history:[]}));render();
  });
- assert.equal(await page.locator('.day.selected .phone-booking-count').textContent(),'6');
- await page.locator('.day.selected .phone-booking-count').click();assert.equal(await page.locator('#modal .agenda-item').count(),6);
+ assert.equal(await page.locator('.day.selected .event-chip:visible').count(),3);
+ assert.equal(await page.locator('.day.selected .event-chip .calendar-room').first().textContent(),'圣堂');
+ assert(await page.locator('.day.selected .event-chip .event-name').first().isVisible());
+ await page.locator('.day.selected .calendar-more').click();assert.equal(await page.locator('#modal .agenda-item').count(),6);
  assert(await page.locator('#modal .modal-head button').isVisible());await page.evaluate(()=>closeModal());
  await page.locator('.selected-day-actions .primary').click();assert(await page.locator('.slot-scroll').isVisible());
  for(const width of [1024,1280,1440]){await page.setViewportSize({width,height:900});await page.evaluate(()=>{mode='calendar';render()});await noPageOverflow();}

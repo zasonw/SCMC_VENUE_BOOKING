@@ -187,7 +187,8 @@ button:disabled { cursor:not-allowed; }
 }
 
 /* Compact phone overview; retain full management layout on larger screens. */
-.phone-brand,.phone-booking-count { display:none; }
+.phone-brand { display:none; }
+.event-chip .event-name::before { content:" · "; }
 .account-unread { display:inline-grid; place-items:center; min-width:18px; height:18px; margin-left:4px; padding:0 4px; border-radius:10px; background:var(--brand); color:white; font-size:11px; }
 @media(max-width:700px) {
  .topbar { display:flex; flex-wrap:nowrap; justify-content:space-between; gap:6px; margin-bottom:10px; }
@@ -210,10 +211,13 @@ button:disabled { cursor:not-allowed; }
  .month-controls button { min-width:44px; min-height:44px; padding:6px; font-size:12px; }
  .month-controls .today-btn { margin-right:0; }
  .weekdays { padding:7px 0; letter-spacing:0; }
- .calendar-grid .day { min-height:62px; padding:4px 3px; }
+ .calendar-grid .day { min-height:76px; padding:4px 3px; }
  .calendar-grid .day-num { width:26px; height:26px; margin:0; }
- .calendar-grid .event-chip,.calendar-grid .calendar-more { display:none; }
- .phone-booking-count { display:block; padding:0 5px; height:24px; min-width:24px; border-radius:5px; background:var(--brand-soft); color:var(--brand); font-size:12px; font-weight:650; }
+ .calendar-grid .event-chip { display:block; white-space:normal; padding:4px 2px; line-height:1.3; font-size:11px; min-height:34px; }
+ .event-chip .calendar-room { display:block; overflow-wrap:anywhere; font-weight:650; }
+ .event-chip .event-name { display:block; font-size:10px; }
+ .event-chip .event-name::before { content:none; }
+ .calendar-grid .calendar-more { display:block; width:100%; padding:4px 0; font-size:11px; text-align:left; }
  .calendar-layout .legend { padding:8px 10px; gap:8px; font-size:11px; }
  .slot-workspace .slot-date { padding:8px 12px; }
  .slot-workspace .slot-legend { padding:8px 12px; }

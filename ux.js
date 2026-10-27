@@ -84,7 +84,12 @@ render=function(){
   }
   document.querySelectorAll('.calendar-grid .day').forEach(day=>{
    const chips=[...day.querySelectorAll('.event-chip')];
-   if(chips.length){const count=document.createElement('button');count.className='phone-booking-count';count.textContent=String(chips.length);count.setAttribute('aria-label',chips.length+' '+rt('Bookings'));count.onclick=event=>{event.stopPropagation();day.click();showAgenda();};day.append(count);}
+   chips.forEach(chip=>{
+    const time=chip.querySelector('.event-name');if(!time)return;
+    const room=document.createElement('span');room.className='calendar-room';room.textContent=chip.firstChild.textContent;
+    chip.firstChild.replaceWith(room);time.textContent=time.textContent.replace(/^\s*·\s*/,'');
+    chip.setAttribute('aria-label',room.textContent+' · '+time.textContent);chip.title=chip.getAttribute('aria-label');
+   });
    if(chips.length<=3)return;
    chips.slice(3).forEach(chip=>chip.hidden=true);
    const more=document.createElement('button');more.type='button';more.className='calendar-more';more.textContent='+'+(chips.length-3)+' '+rt('more');

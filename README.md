@@ -120,7 +120,7 @@ Voice pause update: continuous dictation now survives normal speech pauses, rest
 ### Phone interface and release checks (26 October 2026)
 
 - The phone header shows the SCMC mark, EN / 中文 and Account. Account contains Notifications and shows the unread count beside its label.
-- Phone dates show booking counts; tap a count for the day's booking details. Desktop retains room chips and the day agenda.
+- Phone and desktop dates show room names and start times directly. Up to three bookings appear per date; + more opens the full day list, and tapping a booking opens its details.
 - Filters stay collapsed until opened. In Slots, Continue stays above the phone navigation; Expand opens the larger timetable workspace.
 - Run `npm test --prefix tests` from the repository root for all eight existing unit/integration suites. The browser suite remains separate: `node tests/ux-browser.cjs` with Playwright and Chromium available.
 - Validate the deploy package with `npx wrangler deploy --dry-run` before pushing to `main`. Cloudflare then builds and deploys the commit automatically.
