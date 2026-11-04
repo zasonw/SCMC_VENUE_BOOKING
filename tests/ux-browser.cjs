@@ -62,13 +62,29 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  await page.evaluate(()=>render());assert(await page.locator('.slot-workspace').evaluate(e=>e.classList.contains('is-expanded')));
  await page.locator('.slot-expand').click();assert(!await page.locator('body').evaluate(e=>e.classList.contains('slots-expanded')));
  await page.evaluate(()=>clearSlotSelection());
+ assert.equal(await page.locator('#assistant-launcher').count(),1,'launcher survives slot refresh');
+ assert(await page.locator('.slot-proceed #assistant-launcher').isVisible(),'assistant docked outside grid');
+ await page.evaluate(()=>{pickSlot(1,12);pickSlot(1,13)});
+ assert((await page.locator('.slot-summary').textContent()).includes('60 min'),'selection duration');
+ await page.evaluate(()=>clearSlotSelection());
 
  const nav=await page.locator('.sidebar').boundingBox(),assistant=await page.locator('#assistant-launcher').boundingBox();
  assert(assistant.y+assistant.height<=nav.y,'assistant overlaps bottom navigation');
  await page.evaluate(()=>openForm(4));
- assert.equal(await page.locator('.ux-form-section').count(),3);
- assert.equal(await page.locator('#modal').getAttribute('aria-labelledby'),'ux-dialog-title');
  assert(await page.locator('#ux-dialog-title').evaluate(e=>document.activeElement===e),'dialog title receives focus');
+ await page.screenshot({path:'/tmp/venue-ux-shots/mobile-booking-summary.png'});
+ assert.equal(await page.locator('.ux-form-section').count(),3);
+ assert(await page.locator('.booking-schedule-summary').isVisible());
+ await page.locator('.booking-schedule-summary').click();
+ assert(await page.locator('#booking-form [name=room]').isVisible());
+ await page.locator('#booking-form [name=end]').fill('16:30');
+ assert((await page.locator('.schedule-time').textContent()).includes('16:30'));
+ await page.locator('.booking-schedule-summary').click();
+ await page.evaluate(()=>document.querySelector('#booking-form [name=date]').dispatchEvent(new Event('invalid')));
+ assert(await page.locator('#booking-form [name=date]').isVisible(),'invalid schedule opens for correction');
+
+ assert.equal(await page.locator('#modal').getAttribute('aria-labelledby'),'ux-dialog-title');
+
  assert.equal(await page.locator('.slot-scroll').getAttribute('tabindex'),'0');
  assert.equal(await page.locator('.ux-skip-link').count(),1);
 

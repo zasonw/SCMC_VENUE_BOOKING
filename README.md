@@ -124,3 +124,11 @@ Voice pause update: continuous dictation now survives normal speech pauses, rest
 - Filters stay collapsed until opened. In Slots, Continue stays above the phone navigation; Expand opens the larger timetable workspace.
 - Run `npm test --prefix tests` from the repository root for all eight existing unit/integration suites. The browser suite remains separate: `node tests/ux-browser.cjs` with Playwright and Chromium available.
 - Validate the deploy package with `npx wrangler deploy --dry-run` before pushing to `main`. Cloudflare then builds and deploys the commit automatically.
+
+
+### Booking usability (4 November 2026)
+
+- The booking form shows a compact room/date/time summary. Change expands the original editable fields; invalid required schedule fields expand automatically. Profile defaults and recurring options remain available.
+- Slot controls group Help with Next available and Expand. The phone legend scrolls horizontally to preserve grid space.
+- Selected slots show room, full time range and duration. Continue stays above phone navigation, with the assistant docked in that action area instead of over the timetable. The launcher survives selection updates, refreshes and navigation.
+- The desktop day agenda stays visible while scrolling the month. Calendar room/time entries remain visible on phones.

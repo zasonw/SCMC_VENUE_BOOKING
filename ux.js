@@ -1,5 +1,7 @@
 'use strict';
 Object.assign(translations,{
+ 'Continue':'继续','Review before submitting.':'提交前请确认预约资料',
+ 'Change':'修改','min':'分钟','Tap to change':'点击修改','Review booking':'确认预约资料',
  'Help':'帮助','Language':'语言','Prev':'上月','Bookings':'预约',
  'Expand':'放大','Done':'完成',
  'Skip to content':'跳到主要内容','Booking slots':'预约时段',
@@ -53,6 +55,9 @@ document.addEventListener('keydown',event=>{
 });
 const uxRenderBase=render;
 render=function(){
+ // Keep the single assistant launcher alive when the old slot panel is replaced.
+ const launcher=document.getElementById('assistant-launcher');
+ if(launcher?.closest('.slot-proceed'))document.body.append(launcher);
  uxRenderBase();
  const main=document.querySelector('.main');
  if(main){main.id='main-content';main.tabIndex=-1;}
@@ -103,6 +108,11 @@ render=function(){
   filters.querySelector('select')?.after(button);
  }
  document.querySelectorAll('.month-controls button').forEach(button=>{if(button.textContent.trim()===rt('Previous'))button.textContent=rt('Prev');});
+ const utility=document.querySelector('.ux-slot-jump'),help=document.querySelector('.slot-help');
+ if(utility&&help)utility.append(help);
+ const footer=document.querySelector('.slot-proceed');
+ if(footer&&launcher)footer.append(launcher);
+ updateSlotSummary();
  applySlotWorkspace();
  document.getElementById('account-controls').insertAdjacentHTML('beforeend','<button class="secondary ux-account-button" onclick="openAccountMenu()">'+rt('Account')+'</button>');
  updateAccountUnread();
@@ -139,6 +149,24 @@ slotGridHTML=function(){
  const controls='<div class="ux-day-controls"><button type="button" class="secondary" onclick="shiftDay(-1)">'+rt('Previous day')+'</button><button type="button" class="secondary" onclick="selectDay(dayKey())">'+rt('Today')+'</button><button type="button" class="secondary" onclick="shiftDay(1)">'+rt('Next day')+'</button></div><details class="slot-help"><summary>'+rt('Help')+'</summary><p class="ux-slot-hint">'+rt('Tap a start slot, then an end slot.')+' '+rt('Swipe to see more rooms.')+'</p></details>';
  return html.replace('<div class="slot-legend">',controls+'<div class="ux-slot-jump"><button type="button" class="secondary slot-expand" onclick="toggleSlotWorkspace()" aria-pressed="false">'+rt('Expand')+'</button><button type="button" class="secondary" onclick="jumpToAvailableSlot()">'+rt('Next available')+'</button><span class="slot-availability-message" role="status" hidden>'+rt('No available slots on this date.')+'</span></div><div class="slot-legend">');
 };
+function updateSlotSummary(){
+ const next=document.querySelector('.slot-proceed-actions .primary');if(next)next.textContent=rt('Continue');
+ const summary=document.querySelector('.slot-summary');if(!summary||!slotSelection)return;
+ const {room,first,last}=slotSelection;
+ summary.replaceChildren();
+ const name=document.createElement('strong');name.textContent=roomName(room);
+ const time=document.createElement('span');time.textContent=slotTime(first)+'–'+slotTime(last+1)+' · '+((last-first+1)*30)+' '+rt('min');
+ summary.append(name,time);
+}
+const uxUpdateSlotSelection=updateSlotSelection;
+updateSlotSelection=function(){uxUpdateSlotSelection();updateSlotSummary();};
+function updateScheduleSummary(form){
+ const summary=form.querySelector('.booking-schedule-summary');if(!summary)return;
+ const f=form.elements;
+ const room=roomName(Number(f.room.value)),date=f.date.value,start=f.start.value,end=f.end.value;
+ summary.querySelector('strong').textContent=room;
+ summary.querySelector('.schedule-time').textContent=(date?dateLabel(date,{day:'numeric',month:'short',year:'numeric'}):rt('Choose date'))+' · '+start+'–'+end;
+}
 function uxSection(title,n,fields){
  const section=document.createElement('section');section.className='ux-form-section wide';
  const heading=document.createElement('h3');heading.textContent=n+' · '+rt(title);section.append(heading);
@@ -154,12 +182,23 @@ function uxBookingForm(){
  const activity=uxSection('Activity',2,[field('title'),fellowship]);
  const pic=uxSection('Person in charge',3,[field('pic')]);
  const actions=grid.querySelector('.assistant-choices');if(actions)pic.append(actions);
+ const details=document.createElement('details');details.className='booking-schedule';
+ const summary=document.createElement('summary');summary.className='booking-schedule-summary';
+ summary.innerHTML='<span><strong></strong><span class="schedule-time"></span></span><span class="schedule-change">'+rt('Change')+'</span>';
+ details.append(summary,schedule.querySelector('.form-grid'));schedule.append(details);
  grid.prepend(schedule,activity,pic);
+ details.open=!validBookingTime(form.elements.date.value,form.elements.start.value,form.elements.end.value);
+ updateScheduleSummary(form);
+ form.addEventListener('input',()=>updateScheduleSummary(form));
+ form.addEventListener('change',()=>updateScheduleSummary(form));
+ form.addEventListener('invalid',event=>{if(details.contains(event.target))details.open=true;},true);
+ // Slot, classic and assistant flows fill the end time after openForm returns.
+ queueMicrotask(()=>{if(form.isConnected)updateScheduleSummary(form);});
  // Preserve controls, their values, event listeners and validation while grouping.
  applyLanguage(form);markRequiredFields(form);
 }
 const uxOpenForm=openForm;
-openForm=function(...args){const result=uxOpenForm(...args);uxBookingForm();return result;};
+openForm=function(...args){const result=uxOpenForm(...args);uxBookingForm();if(!args[3]&&document.getElementById('booking-form')){const note=document.querySelector('#modal .modal-head p');if(note)note.textContent=rt('Review before submitting.');}return result;};
 const uxClassic=openClassicBooking;
 openClassicBooking=function(){
  uxClassic();
