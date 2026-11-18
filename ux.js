@@ -67,7 +67,22 @@ function updateAccountUnread(){
 }
 const uxNotificationButton=notificationButton;
 notificationButton=function(){uxNotificationButton();updateAccountUnread();polishUi();};
-showAgenda=function(){showModal(modalHead(rt('Selected day'))+agendaHTML());};
+function addAgendaSlots(root){
+ const foot=root?.querySelector('.agenda-foot');
+ if(!foot)return;
+ // Past days are for looking up events, not starting a booking.
+ if(selected<dayKey()){foot.remove();return;}
+ const button=document.createElement('button');button.type='button';button.className='primary';button.textContent=rt('View slots');
+ button.onclick=()=>{if(document.getElementById('modal').open)closeModal();setMode('venues');};
+ foot.replaceChildren(button);
+}
+showAgenda=function(){showModal(modalHead(rt('Selected day'))+agendaHTML());addAgendaSlots(document.getElementById('modal'));};
+const uxSelectCalendarDay=selectDay;
+selectDay=function(date){
+ const openDay=view==='schedule'&&mode==='calendar'&&window.matchMedia?.('(max-width:700px)').matches;
+ uxSelectCalendarDay(date);
+ if(openDay)showAgenda();
+};
 const uxLiveStatus=liveStatus;
 liveStatus=function(text,error=false){uxLiveStatus(text,error);document.querySelector('.connection-bar')?.classList.toggle('sync-idle',text==='Shared calendar'&&!error);};
 let phoneFiltersOpen=false;
@@ -134,6 +149,8 @@ render=function(){
    const bar=document.createElement('div');bar.className='selected-day-bar';
    bar.innerHTML='<div><small>'+rt('Selected day')+'</small><strong>'+dateLabel(selected,{weekday:'short',day:'numeric',month:'short'})+'</strong></div><div class="selected-day-actions"><button class="secondary" onclick="showAgenda()">'+rt('View day')+'</button><button class="primary" onclick="setMode(\'venues\')">'+rt('View slots')+'</button></div>';
    layout.after(bar);
+   addAgendaSlots(layout.querySelector('.agenda'));
+   if(selected<dayKey())bar.querySelector('.primary')?.remove();
   }
   document.querySelectorAll('.calendar-grid .day').forEach(day=>{
    const chips=[...day.querySelectorAll('.event-chip')];
@@ -146,7 +163,7 @@ render=function(){
    if(chips.length<=3)return;
    chips.slice(3).forEach(chip=>chip.hidden=true);
    const more=document.createElement('button');more.type='button';more.className='calendar-more';more.textContent='+'+(chips.length-3)+' '+rt('more');
-   more.onclick=event=>{event.stopPropagation();day.click();showAgenda();};day.append(more);
+   more.onclick=event=>{event.stopPropagation();day.click();if(!document.getElementById('modal').open)showAgenda();};day.append(more);
   });
  }
  const filters=document.querySelector('.filters');

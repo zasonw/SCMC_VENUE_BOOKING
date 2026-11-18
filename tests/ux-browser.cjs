@@ -146,6 +146,10 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert.equal(await page.locator('.day.selected .event-chip:visible').count(),3);
  assert.equal(await page.locator('.day.selected .event-chip .calendar-room').first().textContent(),'圣堂');
  assert(await page.locator('.day.selected .event-chip .event-name').first().isVisible());
+ await page.locator('.day.selected .day-num').click();
+ assert(await page.locator('#modal .agenda-foot .primary').isVisible(),'phone date tap opens day with slot shortcut');
+ await page.locator('#modal .agenda-foot .primary').click();assert(await page.locator('.slot-scroll').isVisible());
+ await page.evaluate(()=>setMode('calendar'));
  await page.locator('.day.selected .calendar-more').click();assert.equal(await page.locator('#modal .agenda-item').count(),6);
  assert(await page.locator('#modal .modal-head button').isVisible());await page.evaluate(()=>closeModal());
  await page.locator('.selected-day-actions .primary').click();assert(await page.locator('.slot-scroll').isVisible());
