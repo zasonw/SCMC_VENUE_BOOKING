@@ -88,6 +88,19 @@ function applySlotWorkspace(){
 document.addEventListener('keydown',event=>{
  if(event.key==='Escape'&&slotsExpanded&&!document.getElementById('modal').open){slotsExpanded=false;applySlotWorkspace();document.querySelector('.slot-expand')?.focus({preventScroll:true});}
 });
+// Motion is presentation-only: never delay input, closing, or saving.
+const uiMotionPreference=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+const uiMotionActive=new Set();
+function uiTransition(element,kind='fade'){
+ if(!element?.animate||uiMotionPreference?.matches)return;
+ for(const animation of uiMotionActive){if(animation.effect?.target===element){animation.cancel();uiMotionActive.delete(animation);}}
+ const frames=kind==='dialog'?[{opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'translateY(0)'}]:[{opacity:.35},{opacity:1}];
+ const animation=element.animate(frames,{duration:kind==='dialog'?200:150,easing:'ease-in-out'});
+ uiMotionActive.add(animation);
+ const clean=()=>uiMotionActive.delete(animation);animation.onfinish=clean;animation.oncancel=clean;
+}
+uiMotionPreference?.addEventListener?.('change',event=>{if(event.matches){for(const animation of uiMotionActive)animation.cancel();uiMotionActive.clear();}});
+let uiPreviousView=null;
 const uxRenderBase=render;
 render=function(){
  // Keep the single assistant launcher alive when the old slot panel is replaced.
@@ -152,6 +165,9 @@ render=function(){
  document.getElementById('account-controls').insertAdjacentHTML('beforeend','<button class="secondary ux-account-button" onclick="openAccountMenu()">'+rt('Account')+'</button>');
  updateAccountUnread();
  polishUi();
+ const motionView=view+':'+mode+':'+(mode==='calendar'?month:'');
+ if(uiPreviousView!==null&&uiPreviousView!==motionView)uiTransition(document.getElementById('content'));
+ uiPreviousView=motionView;
 };
 Object.assign(translations,{'Venue Booking':'场地预约','Day':'日期','Choose date':'选择日期','Choose month':'选择月份','Month':'月份','Year':'年份','Go':'前往'});
 function adminMonthPickerAllowed(){return role==='admin'&&!!session&&window.matchMedia('(min-width:768px)').matches;}
@@ -270,9 +286,12 @@ previewOccurrence=async function(event){
 // Mobile navigation should land at the start of the newly selected page.
 const uxNavigate=navigate;
 navigate=function(v){uxNavigate(v);if(window.matchMedia?.('(max-width:700px)').matches)window.scrollTo({top:0,behavior:'instant'});};
+const uxBackFromReview=backFromReview;
+backFromReview=function(...args){const result=uxBackFromReview(...args);uiTransition(document.querySelector('#booking-form > .modal-body'));return result;};
 // Name every dialog and keep its heading visible when a multi-step flow replaces it.
 const uxShowModal=showModal;
 showModal=function(...args){
+ const wasOpen=document.getElementById('modal').open;
  const result=uxShowModal(...args),modal=document.getElementById('modal');
  const heading=modal.querySelector('h2');
  if(heading){
@@ -281,6 +300,7 @@ showModal=function(...args){
   heading.focus({preventScroll:true});modal.scrollTop=0;
  }else{modal.removeAttribute('aria-labelledby');modal.setAttribute('aria-label',rt('Booking details'));}
  polishUi(modal);
+ uiTransition(modal,wasOpen?'fade':'dialog');
  return result;
 };
 if(!window.__TEST__)startLive();

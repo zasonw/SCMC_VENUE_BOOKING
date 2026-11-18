@@ -301,3 +301,17 @@ button:focus-visible,summary:focus-visible { outline:3px solid var(--brand); out
  .card-main .row { gap:8px; align-items:flex-start; }
  .badge.has-ui-icon { font-size:11px; padding:4px 7px; }
 }
+
+/* Short transitions retain focus, scroll position and immediate interaction. */
+@keyframes ui-reveal { from { opacity:.3; } to { opacity:1; } }
+@keyframes ui-tick { from { stroke-dashoffset:24; } to { stroke-dashoffset:0; } }
+@media(prefers-reduced-motion:no-preference) {
+ .primary:not(.booking-morph),.secondary,.danger,.seg button,.nav button {
+  transition:background-color 140ms ease-in-out,border-color 140ms ease-in-out,box-shadow 140ms ease-in-out,transform 100ms ease-in-out;
+ }
+ .primary:not(.booking-morph):not(:disabled):active,.secondary:not(:disabled):active,.danger:not(:disabled):active { transform:scale(.98); }
+ .time-slot { transition:background-color 120ms ease-in-out,box-shadow 120ms ease-in-out; }
+ #toast,.booking-review,.booking-schedule[open] .form-grid,.morph-status { animation:ui-reveal 180ms ease-in-out; }
+ #modal[open]::backdrop { animation:ui-reveal 180ms ease-in-out; }
+ .is-success .morph-tick path { stroke-dasharray:24; animation:ui-tick 240ms ease-in-out both; }
+}

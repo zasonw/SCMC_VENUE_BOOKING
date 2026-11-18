@@ -162,5 +162,19 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert.equal(await page.locator('.notification-item.unread').count(),1);
  await page.screenshot({path:'/tmp/venue-ux-shots/mobile-notifications.png'});
  await page.evaluate(()=>closeModal());await noPageOverflow();
+ // Motion must not delay dialog replacement or closing, or ignore reduced motion.
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ const opening=await page.evaluate(()=>{openForm(1);return [...uiMotionActive].some(a=>a.effect.target===document.getElementById('modal'))});
+ assert(opening,'dialog opening uses a short transition');
+ await page.evaluate(()=>{closeModal();openAccountMenu()});
+ assert(await page.locator('#modal').evaluate(e=>e.open),'immediate reopen remains open');
+ assert(await page.locator('.ux-account-menu').isVisible(),'new dialog replaces old form');
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.waitForFunction(()=>uiMotionActive.size===0);
+ const reduced=await page.evaluate(()=>{closeModal();openForm(1);return {count:uiMotionActive.size,transition:getComputedStyle(document.querySelector('#modal .primary')).transitionDuration}});
+ assert.equal(reduced.count,0,'reduced motion skips new transitions');
+ assert.equal(reduced.transition,'0s','reduced motion disables button transitions');
+ await page.evaluate(()=>closeModal());
+ await page.emulateMedia({reducedMotion:'no-preference'});
  assert.deepEqual(errors,[]);await browser.close();console.log('PASS: 390px/1440px layouts, no page/modal overflow, mobile navigation and assistant separation, collapsible edits, Chinese controls and no browser errors.');
 })().catch(e=>{console.error(e);process.exitCode=1});
