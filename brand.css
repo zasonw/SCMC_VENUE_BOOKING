@@ -265,3 +265,39 @@ button:disabled { cursor:not-allowed; }
  .booking-schedule > .form-grid { padding:12px; }
  #modal .ux-form-section { padding-top:16px; }
 }
+
+/* Visual refresh: consistent outline icons with readable text labels. */
+.ui-icon { display:inline-block!important; width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; vertical-align:middle; pointer-events:none; }
+.has-ui-icon { display:inline-flex; align-items:center; gap:7px; }
+.nav button.has-ui-icon { display:flex; }
+.nav button > .ui-icon { display:block!important; width:20px; height:20px; }
+.ux-form-section h3.has-ui-icon { display:flex; gap:9px; }
+.ux-form-section h3 .ui-icon { width:20px; height:20px; }
+.badge.has-ui-icon { display:inline-flex; padding:5px 9px; gap:5px; border-radius:999px; font-size:12px; line-height:1.4; font-weight:600; }
+.badge .ui-icon { width:14px; height:14px; }
+.badge.confirmed { border:1px solid #bad6c4; }
+.badge.pending { border:1px solid #e4cf8e; }
+.badge.cancelled,.badge.rejected,.badge.expired { background:#f4f1f2; color:#71545c; border:1px solid #dfd2d6; }
+.badge.blocked { border:1px solid #cbd4de; }
+.secondary,.primary,.danger { border-radius:10px; }
+button:focus-visible,summary:focus-visible { outline:3px solid var(--brand); outline-offset:3px; }
+.header .primary.has-ui-icon { gap:6px; }
+.topbar .ux-account-button.has-ui-icon { gap:5px; }
+.booking-card { box-shadow:0 2px 8px #17355304; }
+@media(min-width:701px) {
+ .phone-filter-toggle.has-ui-icon { display:none; }
+ .sidebar .nav button { min-height:48px; }
+ .card-actions button { min-height:44px; }
+ .booking-card .row { gap:12px; }
+}
+@media(max-width:700px) {
+ .sidebar .nav button.has-ui-icon { display:flex; flex-direction:column; justify-content:center; gap:2px; padding:4px!important; min-height:48px; position:relative; }
+ .sidebar .nav button > .ui-icon { width:18px; height:18px; }
+ .sidebar .nav .nav-count { position:absolute; top:2px; right:5px; font-size:10px; }
+ .sidebar .nav .action-label { font-size:12px; line-height:1.25; }
+ .topbar .ux-account-button .ui-icon { width:16px; height:16px; }
+ .phone-filter-toggle.has-ui-icon { display:inline-flex; gap:5px; align-items:center; }
+ .phone-filter-toggle .ui-icon { width:16px; height:16px; }
+ .card-main .row { gap:8px; align-items:flex-start; }
+ .badge.has-ui-icon { font-size:11px; padding:4px 7px; }
+}

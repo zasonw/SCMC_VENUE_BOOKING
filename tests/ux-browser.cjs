@@ -20,6 +20,15 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
   bookings=[{id:'00000000-0000-0000-0000-000000000001',series_id:'series',owner:'member',room:3,date:selected,start:'09:00',end:'11:00',title:'Bible study',group:'乐龄团契',pic:'Jason',contact:'',notes:'',status:'confirmed',history:[],created:Date.now(),booked_by:'Jason'}];
   render();
  });
+ const checkNavIcons=async()=>{
+  for(const button of await page.locator('#nav button').all()){
+   assert((await button.innerText()).trim().length>0,'navigation retains readable labels');
+   assert.equal(await button.locator(':scope > .ui-icon').count(),1,'one icon per navigation item');
+   assert(await button.locator(':scope > .ui-icon').isVisible(),'navigation icon visible');
+  }
+ };
+ await checkNavIcons();
+ await page.evaluate(()=>{render();render()});await checkNavIcons();
  const brand=await page.locator('.header .primary').evaluate(e=>({bg:getComputedStyle(e).backgroundColor,fg:getComputedStyle(e).color}));
  assert.equal(brand.bg,'rgb(0, 88, 164)','logo blue applied to primary actions');
  const luminance=color=>{const channels=color.match(/\d+/g).slice(0,3).map(Number).map(n=>{const v=n/255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return channels[0]*.2126+channels[1]*.7152+channels[2]*.0722};
@@ -29,7 +38,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  await noPageOverflow();
  assert(await page.locator('.topbar > .language-switch').isVisible());
  await page.locator('.topbar [data-language=zh]').click();assert.equal(await page.locator('#heading').textContent(),'场地预约');
- await page.locator('.topbar [data-language=en]').click();
+ await page.locator('.topbar [data-language=en]').click();await checkNavIcons();
  assert(!await page.locator('.calendar-layout > .agenda').isVisible());
  assert(!await page.locator('.filters select').first().isVisible());
  assert(!await page.locator('.filters select').last().isVisible());
@@ -141,6 +150,8 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert(await page.locator('#modal .modal-head button').isVisible());await page.evaluate(()=>closeModal());
  await page.locator('.selected-day-actions .primary').click();assert(await page.locator('.slot-scroll').isVisible());
  for(const width of [1024,1280,1440]){await page.setViewportSize({width,height:900});await page.evaluate(()=>{mode='calendar';render()});await noPageOverflow();}
+ assert(!await page.locator('.phone-filter-toggle').isVisible(),'desktop uses visible filters without phone toggle');
+ await checkNavIcons();
  await page.evaluate(()=>{role='admin';render();adminAgendaDate=selected;openAdminAgenda('week')});
  assert(await page.locator('.admin-agenda-item').count()>0);
  await page.screenshot({path:'/tmp/venue-ux-shots/desktop-agenda.png'});

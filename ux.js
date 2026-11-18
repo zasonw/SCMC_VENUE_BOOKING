@@ -16,6 +16,41 @@ Object.assign(translations,{
  'Date & time':'日期与时间','Choose a room':'选择场地','Booking details':'预约资料',
  'Required fields':'必填项目','Back to calendar':'返回日历','Sign in or register to book.':'登录或注册后即可预约'
 });
+// Shared outline icons: static SVG paths, no external font or network dependency.
+const uiIconPaths={
+ calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2"/>',
+ rooms:'<path d="M4 21h16M7 21V4l10-1v18M13 12h.01"/>',
+ bookings:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 11h6m-6 4h6"/>',
+ admin:'<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ filters:'<path d="M4 7h8m4 0h4M4 17h3m4 0h9"/><circle cx="14" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+ bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+ check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+ cancel:'<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/>',
+ blocked:'<circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/>',
+ activity:'<path d="M5 4h14v17H5zM9 8h6m-6 4h6m-6 4h4"/>'
+};
+function uiIcon(name){return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+(uiIconPaths[name]||uiIconPaths.calendar)+'</svg>';}
+function addUiIcon(element,name){
+ if(!element||element.querySelector(':scope > .ui-icon'))return;
+ element.insertAdjacentHTML('afterbegin',uiIcon(name));element.classList.add('has-ui-icon');
+}
+function polishUi(root=document){
+ const navigation={schedule:'calendar',rooms:'rooms',mine:'bookings',admin:'admin'};
+ root.querySelectorAll('#nav button').forEach(button=>{
+  const match=button.getAttribute('onclick')?.match(/navigate\('([^']+)'\)/);if(match)addUiIcon(button,navigation[match[1]]);
+ });
+ for(const [selector,name] of [['.ux-account-button','user'],['.notification-button','bell'],['.phone-filter-toggle','filters'],['.ux-header-actions .primary','plus']]){
+  root.querySelectorAll(selector).forEach(element=>addUiIcon(element,name));
+ }
+ root.querySelectorAll('.ux-form-section h3').forEach((heading,i)=>addUiIcon(heading,['calendar','activity','user'][i]||'activity'));
+ root.querySelectorAll('.badge').forEach(badge=>{
+  const kind=['confirmed','pending','cancelled','rejected','expired','blocked'].find(k=>badge.classList.contains(k));
+  if(kind)addUiIcon(badge,{confirmed:'check',pending:'clock',cancelled:'cancel',rejected:'cancel',expired:'clock',blocked:'blocked'}[kind]);
+ });
+}
 function openAccountMenu(){
  showModal(modalHead(rt('Account'))+'<div class="modal-body ux-account-menu"><div class="ux-account-identity"><strong>'+esc(session?me:rt('Guest'))+'</strong><span>'+rt(session?(role==='admin'?'Admin':'Member'):'Sign in or register to book.')+'</span></div>'+
  (session?'<button class="secondary" onclick="openNotifications()">'+rt('Notifications')+(notificationState.unread?' ('+notificationState.unread+')':'')+'</button><button class="secondary" onclick="openProfile()">'+rt('My profile')+'</button><button class="secondary" onclick="closeModal();navigate(\'mine\')">'+rt('My bookings')+'</button>'+
@@ -31,7 +66,7 @@ function updateAccountUnread(){
  if(session&&notificationState.unread){const badge=document.createElement('span');badge.className='account-unread';badge.textContent=notificationState.unread;badge.setAttribute('aria-label',rt('Notifications'));button.append(badge);}
 }
 const uxNotificationButton=notificationButton;
-notificationButton=function(){uxNotificationButton();updateAccountUnread();};
+notificationButton=function(){uxNotificationButton();updateAccountUnread();polishUi();};
 showAgenda=function(){showModal(modalHead(rt('Selected day'))+agendaHTML());};
 const uxLiveStatus=liveStatus;
 liveStatus=function(text,error=false){uxLiveStatus(text,error);document.querySelector('.connection-bar')?.classList.toggle('sync-idle',text==='Shared calendar'&&!error);};
@@ -116,6 +151,7 @@ render=function(){
  applySlotWorkspace();
  document.getElementById('account-controls').insertAdjacentHTML('beforeend','<button class="secondary ux-account-button" onclick="openAccountMenu()">'+rt('Account')+'</button>');
  updateAccountUnread();
+ polishUi();
 };
 Object.assign(translations,{'Venue Booking':'场地预约','Day':'日期','Choose date':'选择日期','Choose month':'选择月份','Month':'月份','Year':'年份','Go':'前往'});
 function adminMonthPickerAllowed(){return role==='admin'&&!!session&&window.matchMedia('(min-width:768px)').matches;}
@@ -169,7 +205,7 @@ function updateScheduleSummary(form){
 }
 function uxSection(title,n,fields){
  const section=document.createElement('section');section.className='ux-form-section wide';
- const heading=document.createElement('h3');heading.textContent=n+' · '+rt(title);section.append(heading);
+ const heading=document.createElement('h3');heading.textContent=rt(title);section.append(heading);
  const grid=document.createElement('div');grid.className='form-grid';fields.filter(Boolean).forEach(field=>grid.append(field));section.append(grid);return section;
 }
 function uxBookingForm(){
@@ -195,7 +231,7 @@ function uxBookingForm(){
  // Slot, classic and assistant flows fill the end time after openForm returns.
  queueMicrotask(()=>{if(form.isConnected)updateScheduleSummary(form);});
  // Preserve controls, their values, event listeners and validation while grouping.
- applyLanguage(form);markRequiredFields(form);
+ applyLanguage(form);markRequiredFields(form);polishUi(form);
 }
 const uxOpenForm=openForm;
 openForm=function(...args){const result=uxOpenForm(...args);uxBookingForm();if(!args[3]&&document.getElementById('booking-form')){const note=document.querySelector('#modal .modal-head p');if(note)note.textContent=rt('Review before submitting.');}return result;};
@@ -244,6 +280,7 @@ showModal=function(...args){
   modal.setAttribute('aria-labelledby',heading.id);modal.removeAttribute('aria-label');
   heading.focus({preventScroll:true});modal.scrollTop=0;
  }else{modal.removeAttribute('aria-labelledby');modal.setAttribute('aria-label',rt('Booking details'));}
+ polishUi(modal);
  return result;
 };
 if(!window.__TEST__)startLive();
