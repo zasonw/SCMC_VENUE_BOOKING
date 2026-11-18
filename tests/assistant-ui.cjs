@@ -39,6 +39,14 @@ recognizer.onresult({results:[phrase('at eight pm')]});assert.equal(speechInput.
 recognizer.onerror({error:'no-speech'});assert(run('assistantRecognition'));recognizer.onend();restart();
 recognizer.onresult({results:[phrase('in Room one')]});run('toggleAssistantVoice()');assert.equal(speechInput.value,'Book tomorrow at eight pm in Room one');assert(!speechButton.disabled);
 run('toggleAssistantVoice()');recognizer.onresult({results:[phrase('for fellowship')]});run('toggleAssistantVoice()');assert.equal(speechInput.value,'Book tomorrow at eight pm in Room one for fellowship');
+// Partial hypotheses are replaced in place. Undo restores the exact prior draft.
+const undo={hidden:true};elements.set('assistant-undo',undo);speechForm.querySelector=s=>s==='#assistant-undo'?undo:speechButton;
+speechInput.value='Existing draft';run('toggleAssistantVoice()');
+const partial=phrase('at nine');partial.isFinal=false;recognizer.onresult({results:[partial]});
+assert.equal(speechInput.value,'Existing draft at nine');
+recognizer.onresult({results:[phrase('at ten')]});run('toggleAssistantVoice()');
+assert.equal(speechInput.value,'Existing draft at ten');assert.equal(undo.hidden,false);
+run('undoDictation()');assert.equal(speechInput.value,'Existing draft');
 // Closing during a pending restart must never turn the microphone back on.
 run('toggleAssistantVoice()');recognizer.onend();const pendingRestart=restart;run('closeModal()');pendingRestart();assert.equal(run('assistantRecognition'),null);
 console.log('PASS: continuous listening, pause/restart accumulation, silence recovery, repeated dictation and cancelled restarts.');

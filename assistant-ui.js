@@ -7,7 +7,7 @@ render=function(){renderWithAssistant();const launcher=document.getElementById('
 function openAssistant(){
  assistantDraft=null;assistantQuestion='';
  if(!session){showModal(modalHead(rt('Assistant'))+'<div class="modal-body"><p>'+rt('Sign in to use the assistant.')+'</p></div><div class="modal-footer"><button class="primary" onclick="authForm()">'+rt('Sign in')+'</button></div>');return;}
- showModal(modalHead(rt('Assistant'))+'<form id="assistant-form" onsubmit="prepareAssistant(event)"><div class="modal-body"><div id="assistant-conversation" class="assistant-conversation" aria-live="polite"></div><label class="field"><span>'+rt('Describe your booking')+'</span><textarea name="request" required maxlength="1000" rows="4" placeholder="'+(language==='zh'?'明天晚上8点至10点 青团在新会议室查经':'Tomorrow 8–10pm, Bible study for 青团 in 新会议室')+'"></textarea></label>'+assistantVoiceHTML()+'<p class="section-note">'+rt('Enter your request in English or Chinese.')+' '+rt('Request is sent to Cloudflare AI.')+'</p><div id="assistant-error" role="alert"></div><div id="assistant-result" aria-live="polite"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="openClassicBooking()">'+rt('Book')+'</button><button class="primary" type="submit">'+rt('Send')+'</button></div></form>');
+ showModal(modalHead(rt('Assistant'))+'<form id="assistant-form" onsubmit="prepareAssistant(event)"><div class="modal-body"><div id="assistant-conversation" class="assistant-conversation" aria-live="polite"></div>'+assistantVoiceHTML()+'<label class="field"><span>'+rt('Describe your booking')+'</span><textarea name="request" required maxlength="1000" rows="4" placeholder="'+(language==='zh'?'明天晚上8点至10点 青年團契在新会议室查经':'Tomorrow 8–10pm, Bible study for 青年團契 in 新会议室')+'"></textarea></label><p class="section-note">'+rt('Enter your request in English or Chinese.')+' '+rt('Request is sent to Cloudflare AI.')+'</p><div id="assistant-error" role="alert"></div><div id="assistant-result" aria-live="polite"></div></div><div class="modal-footer"><button class="secondary" type="button" onclick="openClassicBooking()">'+rt('Book')+'</button><button class="primary" type="submit">'+rt('Send')+'</button></div></form>');
 }
 
 Object.assign(translations,{
@@ -87,6 +87,7 @@ async function prepareAssistant(event){
   assistantDraft=data.draft;
   const conversation=document.getElementById('assistant-conversation');
   conversation.insertAdjacentHTML('beforeend','<p class="assistant-user">'+esc(message)+'</p>');
+  voiceUndo.delete(form);const undoButton=form.querySelector('#assistant-undo');if(undoButton)undoButton.hidden=true;
   form.elements.request.value='';form.elements.request.placeholder=rt('Add details or ask to change the room, date or time.');document.getElementById('assistant-result').innerHTML=assistantSummary(data);
   conversation.insertAdjacentHTML('beforeend','<p class="assistant-reply">'+rt(assistantQuestion)+'</p>');
   document.getElementById('assistant-result').scrollIntoView({block:'nearest',behavior:'smooth'});
@@ -110,18 +111,27 @@ function useAssistantDraft(alternative=null){
 Object.assign(translations,{'Voice':'语音','Stop':'停止','Listening…':'正在聆听…','Starting microphone…':'正在开启麦克风…','Voice language':'语音语言','Review the text, then prepare your draft.':'请核对文字 再生成草稿','Use your keyboard microphone or type instead.':'请使用键盘麦克风或直接输入','Microphone access denied. You can still type.':'麦克风权限未开启 您仍可输入文字','No speech heard. Try again or type.':'未听到语音 请重试或输入文字','Voice unavailable. Use your keyboard microphone or type.':'语音暂不可用 请使用键盘麦克风或输入文字','Your browser handles voice recognition.':'语音由浏览器识别'});
 let assistantRecognition=null,assistantVoiceTimer=null;
 const micSVG='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>';
+Object.assign(translations,{'Tap to speak':'点此说话','Undo last dictation':'撤回本次语音','Check the text, then send.':'请核对文字后发送'});
+const voiceUndo=new WeakMap();
+function preferredVoice(){try{return localStorage.getItem('venue-voice-language')||(language==='zh'?'zh-CN':'en-SG')}catch{return language==='zh'?'zh-CN':'en-SG'}}
+function rememberVoice(value){try{localStorage.setItem('venue-voice-language',value)}catch{}}
+function undoDictation(){
+ const form=document.getElementById('assistant-form'),last=voiceUndo.get(form);
+ if(assistantRecognition||!last||form.elements.request.value!==last.after)return;
+ form.elements.request.value=last.before;voiceUndo.delete(form);document.getElementById('assistant-undo').hidden=true;
+}
 function assistantVoiceHTML(){
  if(!(window.SpeechRecognition||window.webkitSpeechRecognition))return '<p class="section-note">'+rt('Use your keyboard microphone or type instead.')+'</p>';
- return '<div class="assistant-voice"><button id="assistant-mic" type="button" class="secondary" aria-pressed="false" onclick="toggleAssistantVoice()">'+micSVG+'<span>'+rt('Voice')+'</span></button><select id="assistant-voice-language" aria-label="'+rt('Voice language')+'"><option value="en-SG" '+(language==='en'?'selected':'')+'>English</option><option value="zh-CN" '+(language==='zh'?'selected':'')+'>普通话</option></select></div><p id="assistant-voice-status" class="section-note" role="status" aria-live="polite">'+rt('Speak slowly. Pauses are OK. Tap Stop when finished.')+'</p>';
+ return '<div class="assistant-voice"><button id="assistant-mic" type="button" class="primary" aria-pressed="false" onclick="toggleAssistantVoice()">'+micSVG+'<span>'+rt('Tap to speak')+'</span></button><select id="assistant-voice-language" onchange="rememberVoice(this.value)" aria-label="'+rt('Voice language')+'"><option value="en-SG" '+(preferredVoice()==='en-SG'?'selected':'')+'>English</option><option value="zh-CN" '+(preferredVoice()==='zh-CN'?'selected':'')+'>普通话</option></select></div><button hidden id="assistant-undo" class="secondary" type="button" onclick="undoDictation()">'+rt('Undo last dictation')+'</button><p id="assistant-voice-status" class="section-note" role="status" aria-live="polite">'+rt('Speak slowly. Pauses are OK. Tap Stop when finished.')+'</p>';
 }
 function voiceControls(form,active){
  const button=document.getElementById('assistant-mic'),lang=document.getElementById('assistant-voice-language');
- if(button){button.classList?.remove('mic-listening');button.innerHTML=micSVG+'<span>'+rt(active?'Stop':'Voice')+'</span>';button.setAttribute('aria-pressed',String(active));}
+ if(button){button.classList?.remove('mic-listening');button.innerHTML=micSVG+'<span>'+rt(active?'Stop':'Tap to speak')+'</span>';button.setAttribute('aria-pressed',String(active));}
  if(lang)lang.disabled=active;
  if(form){form.elements.request.readOnly=active;form.querySelector('[type="submit"]').disabled=active;}
 }
 function stopAssistantVoice(){
- const rec=assistantRecognition;assistantRecognition=null;clearTimeout(assistantVoiceTimer);
+ const rec=assistantRecognition;rec?.remember?.();assistantRecognition=null;clearTimeout(assistantVoiceTimer);
  if(rec){rec.onresult=rec.onend=rec.onerror=rec.onstart=null;try{rec.abort();}catch{}voiceControls(document.getElementById('assistant-form'),false);}
 }
 Object.assign(translations,{'Speak slowly. Pauses are OK. Tap Stop when finished.':'请慢慢说 停顿也没关系 说完后点停止','Listening — take your time.':'正在聆听 请慢慢说','Tap Voice to add more, or prepare your draft.':'点语音可继续补充 或生成草稿','Text limit reached. Review or shorten your request.':'已达字数上限 请核对或精简需求','Voice paused. Tap Voice to continue.':'语音已暂停 请点语音继续'});
@@ -130,18 +140,21 @@ function toggleAssistantVoice(){
  const FormRecognition=window.SpeechRecognition||window.webkitSpeechRecognition,form=document.getElementById('assistant-form');
  if(!FormRecognition||!form||form.querySelector('[type="submit"]').disabled)return;
  const status=document.getElementById('assistant-voice-status'),rec=new FormRecognition();
- let base=form.elements.request.value.trim(),interim='',finalText='',rapidEnds=0,startedAt=Date.now();
+ const before=form.elements.request.value,undo=form.querySelector('#assistant-undo');
+ if(undo){undo.hidden=true;form.elements.request.oninput=()=>{undo.hidden=true;voiceUndo.delete(form);};}
+ let base=before.trim(),interim='',finalText='',rapidEnds=0,startedAt=Date.now();
  assistantRecognition=rec;rec.lang=document.getElementById('assistant-voice-language').value;rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=1;rec.finishRequested=false;
  voiceControls(form,true);status.textContent=rt('Starting microphone…');
  const current=()=>assistantRecognition===rec&&document.getElementById('assistant-form')===form&&document.getElementById('modal').open;
- const commit=()=>{form.elements.request.value=[base,finalText.trim(),interim.trim()].filter(Boolean).join(' ').slice(0,1000);};
+ const commit=()=>{form.elements.request.value=[base,finalText.trim(),interim.trim()].filter(Boolean).join(' ').replace(/([\u3400-\u9fff]) +(?=[\u3400-\u9fff])/g,'$1').slice(0,1000);};
+ rec.remember=()=>{if(undo&&current()&&before!==form.elements.request.value){voiceUndo.set(form,{before,after:form.elements.request.value});undo.hidden=false;}};
  rec.finish=()=>{if(!current())return;commit();stopAssistantVoice();status.textContent=rt('Tap Voice to add more, or prepare your draft.');};
  rec.onstart=()=>{if(current()){document.getElementById('assistant-mic')?.classList?.add('mic-listening');status.textContent=rt('Listening — take your time.');}};
  rec.onresult=event=>{
   if(!current())return;finalText='';interim='';
   for(let i=0;i<event.results.length;i++){const result=event.results[i];if(result.isFinal)finalText+=result[0].transcript+' ';else interim+=result[0].transcript;}
-  form.elements.request.value=[base,finalText.trim()].filter(Boolean).join(' ').slice(0,1000);
-  status.textContent=interim||rt('Listening — take your time.');
+  commit();
+  status.textContent=rt('Listening — take your time.');
   if([base,finalText,interim].join(' ').length>=1000){commit();stopAssistantVoice();status.textContent=rt('Text limit reached. Review or shorten your request.');}
  };
  rec.onerror=event=>{
@@ -154,8 +167,8 @@ function toggleAssistantVoice(){
   document.getElementById('assistant-mic')?.classList?.remove('mic-listening');
   if(rec.finishRequested){rec.finish();return;}
   // Browsers can end recognition at a pause even with continuous mode enabled.
-  commit();base=form.elements.request.value.trim();finalText='';interim='';
-  rapidEnds=Date.now()-startedAt<1500?rapidEnds+1:0;
+  const heard=Boolean(finalText.trim()||interim.trim());commit();base=form.elements.request.value.trim();finalText='';interim='';
+  rapidEnds=!heard&&Date.now()-startedAt<1500?rapidEnds+1:0;
   if(rapidEnds>=3){stopAssistantVoice();status.textContent=rt('Voice paused. Tap Voice to continue.');return;}
   status.textContent=rt('Listening — take your time.');
   assistantVoiceTimer=setTimeout(()=>{if(!current())return;try{startedAt=Date.now();rec.start();}catch{stopAssistantVoice();status.textContent=rt('Voice paused. Tap Voice to continue.');}},350);
