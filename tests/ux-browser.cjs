@@ -178,6 +178,13 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  const reduced=await page.evaluate(()=>{closeModal();openForm(1);return {count:uiMotionActive.size,transition:getComputedStyle(document.querySelector('#modal .primary')).transitionDuration}});
  assert.equal(reduced.count,0,'reduced motion skips new transitions');
  assert.equal(reduced.transition,'0s','reduced motion disables button transitions');
+ for(const lang of ['en','zh']){
+  await page.evaluate(async lang=>{closeModal();setLanguage(lang);openForm(1);const f=document.querySelector('#booking-form');bookings[0].status='pending';f.dataset.savedId=bookings[0].id;await animateBookingSubmission(f,async()=>true)},lang);
+  assert(await page.locator('.booking-receipt').isVisible());
+  assert((await page.locator('.booking-receipt').textContent()).includes(lang==='en'?'Pending approval':'待审批'));
+  assert(!await page.locator('#booking-form .modal-body').isVisible());await noPageOverflow();
+ }
+
  await page.evaluate(()=>closeModal());
  await page.emulateMedia({reducedMotion:'no-preference'});
  assert.deepEqual(errors,[]);await browser.close();console.log('PASS: 390px/1440px layouts, no page/modal overflow, mobile navigation and assistant separation, collapsible edits, Chinese controls and no browser errors.');

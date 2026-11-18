@@ -315,3 +315,10 @@ button:focus-visible,summary:focus-visible { outline:3px solid var(--brand); out
  #modal[open]::backdrop { animation:ui-reveal 180ms ease-in-out; }
  .is-success .morph-tick path { stroke-dasharray:24; animation:ui-tick 240ms ease-in-out both; }
 }
+
+.booking-receipt { display:grid;gap:8px;margin:16px;padding:16px;border:1px solid #bcdaca;border-radius:12px;background:#f1faf4;color:#244536; }
+.booking-receipt strong { font-size:18px; }
+#booking-form[data-morph-active=yes] .modal-footer { flex-wrap:wrap; }
+#booking-form [hidden] { display:none!important; }
+@media(prefers-reduced-motion:no-preference){.mic-listening svg { animation:mic-glow 1.4s ease-in-out infinite alternate; }}
+@keyframes mic-glow { from {opacity:.55} to {opacity:1} }

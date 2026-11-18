@@ -116,7 +116,7 @@ function assistantVoiceHTML(){
 }
 function voiceControls(form,active){
  const button=document.getElementById('assistant-mic'),lang=document.getElementById('assistant-voice-language');
- if(button){button.innerHTML=micSVG+'<span>'+rt(active?'Stop':'Voice')+'</span>';button.setAttribute('aria-pressed',String(active));}
+ if(button){button.classList?.remove('mic-listening');button.innerHTML=micSVG+'<span>'+rt(active?'Stop':'Voice')+'</span>';button.setAttribute('aria-pressed',String(active));}
  if(lang)lang.disabled=active;
  if(form){form.elements.request.readOnly=active;form.querySelector('[type="submit"]').disabled=active;}
 }
@@ -136,7 +136,7 @@ function toggleAssistantVoice(){
  const current=()=>assistantRecognition===rec&&document.getElementById('assistant-form')===form&&document.getElementById('modal').open;
  const commit=()=>{form.elements.request.value=[base,finalText.trim(),interim.trim()].filter(Boolean).join(' ').slice(0,1000);};
  rec.finish=()=>{if(!current())return;commit();stopAssistantVoice();status.textContent=rt('Tap Voice to add more, or prepare your draft.');};
- rec.onstart=()=>{if(current())status.textContent=rt('Listening — take your time.');};
+ rec.onstart=()=>{if(current()){document.getElementById('assistant-mic')?.classList?.add('mic-listening');status.textContent=rt('Listening — take your time.');}};
  rec.onresult=event=>{
   if(!current())return;finalText='';interim='';
   for(let i=0;i<event.results.length;i++){const result=event.results[i];if(result.isFinal)finalText+=result[0].transcript+' ';else interim+=result[0].transcript;}
@@ -151,6 +151,7 @@ function toggleAssistantVoice(){
  };
  rec.onend=()=>{
   if(!current())return;
+  document.getElementById('assistant-mic')?.classList?.remove('mic-listening');
   if(rec.finishRequested){rec.finish();return;}
   // Browsers can end recognition at a pause even with continuous mode enabled.
   commit();base=form.elements.request.value.trim();finalText='';interim='';

@@ -53,7 +53,7 @@ submitBooking=function(event,id,block){
  const repeating=form.elements.repeat_frequency&&form.elements.repeat_frequency.value!=='once';
  if(block||(repeating&&(!repeatPreview||repeatPreview.signature!==JSON.stringify(repeatPayload(form)))))return submitAfterReview(event,id,block);
  event.preventDefault();if(!form.reportValidity())return;
- if(form.dataset.reviewConfirmed==='yes'){delete form.dataset.reviewConfirmed;return animateBookingSubmission(form,()=>submitAfterReview(event,id,block));}
+ if(form.dataset.reviewConfirmed==='yes'){delete form.dataset.reviewConfirmed;return animateBookingSubmission(form,()=>submitAfterReview(event,id,block),id);}
  if(form.querySelector('.booking-review'))return;
  form.querySelector('.modal-body').hidden=true;form.querySelector('.modal-footer').hidden=true;
  form.insertAdjacentHTML('beforeend','<section class="booking-review"><div class="modal-body"><h2>'+rt('Review booking')+'</h2><p class="section-note">'+rt('Not submitted yet')+'</p><dl class="detail-grid">'+reviewRows(form)+'</dl></div><div class="modal-footer"><button type="button" class="secondary" onclick="backFromReview()">'+rt('Back')+'</button><button type="button" class="primary" onclick="confirmReviewedBooking()">'+rt('Confirm booking')+'</button></div></section>');
@@ -64,10 +64,14 @@ function confirmReviewedBooking(){const form=document.getElementById('booking-fo
 
 Object.assign(translations,{'Submitting…':'正在提交…','Saved. Approval status is shown in My bookings.':'已保存 可在我的预约查看审批状态','New booking':'新预约'});
 const bookingMorphDelay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function animateBookingSubmission(form,save){
+Object.assign(translations,{'Booking submitted':'预约已提交','Booking updated':'预约已更新','Try again':'重试','Check status in My bookings':'请在我的预约查看状态','Pending approval':'待审批'});
+async function animateBookingSubmission(form,save,editId){
  if(form.dataset.morphActive==='yes')return;
  const button=form.querySelector('button[type="submit"]');if(!button)return save();
- const original=button.innerHTML,room=Number(form.elements.room.value),revision=sessionRevision;
+ form.querySelector('.receipt-reselect')?.remove();
+ const room=Number(form.elements.room.value),revision=sessionRevision;
+ const dates=[...form.querySelectorAll('[name=occurrence]:checked')].map(e=>e.value);
+ const when=(dates.length?dates[0]:form.elements.date.value)+' · '+form.elements.start.value+'–'+form.elements.end.value;
  const controls=[...form.querySelectorAll('button')].map(el=>[el,el.disabled]);
  form.dataset.morphActive='yes';form.inert=true;form.setAttribute('aria-busy','true');
  const width=Math.max(140,button.getBoundingClientRect().width);
@@ -80,18 +84,33 @@ async function animateBookingSubmission(form,save){
  controls.forEach(([el])=>el.disabled=true);
  let ok=false;
  try{ok=await save();}catch(error){toast(friendlyError(error));}
- await bookingMorphDelay(Math.max(0,1500-(Date.now()-started)));
+ if(!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)await bookingMorphDelay(Math.max(0,1500-(Date.now()-started)));
  if(!form.isConnected||document.getElementById('booking-form')!==form||revision!==sessionRevision)return;
  form.inert=false;form.removeAttribute('aria-busy');controls.forEach(([el,disabled])=>el.disabled=disabled);
  if(!ok){
-  delete form.dataset.morphActive;button.classList.remove('booking-morph','is-loading');button.style.width='';button.innerHTML=original;button.removeAttribute('aria-label');shell.replaceWith(button);return;
+  delete form.dataset.morphActive;button.classList.remove('booking-morph','is-loading');button.style.width='';button.textContent=rt('Try again');button.removeAttribute('aria-label');shell.replaceWith(button);
+  const errorBox=form.querySelector('#form-error');
+  if(errorBox&&/conflict|unavailable|no longer available|already booked|overlap|冲突|不可用|已被/i.test(errorBox.textContent)){
+   const change=document.createElement('button');change.type='button';change.className='secondary receipt-reselect';change.textContent=language==='zh'?'更改时段':'Change slot';
+   change.onclick=()=>{const details=form.querySelector('.booking-schedule');if(details)details.open=true;form.elements.start.focus();};errorBox.after(change);
+  }
+  return;
  }
  // A successful submission must never submit the same form again.
  form.querySelectorAll('input,select,textarea,button[type="submit"]').forEach(el=>el.disabled=true);
  button.classList.remove('is-loading');button.classList.add('is-success');button.setAttribute('aria-label',rt('Saved. Approval status is shown in My bookings.'));
- const status=document.createElement('p');status.className='morph-status';status.setAttribute('role','status');status.textContent=rt('Saved. Approval status is shown in My bookings.');
- form.querySelector('.modal-footer').before(status);
- const reset=()=>{if(form.isConnected&&document.getElementById('booking-form')===form&&document.getElementById('modal').open&&revision===sessionRevision)openForm(room);};
- const next=document.createElement('button');next.type='button';next.className='secondary';next.textContent=rt('New booking');next.onclick=reset;form.querySelector('.modal-footer').prepend(next);
- setTimeout(reset,60000);
+ const entries=form.dataset.savedSeries?bookings.filter(b=>b.series_id===form.dataset.savedSeries):bookings.filter(b=>b.id===(form.dataset.savedId||editId));
+ const entry=entries[0],state=liveReady&&entry&&entries.every(b=>b.status===entry.status)?entry.status:'';
+ const status=document.createElement('section');status.className='morph-status booking-receipt';status.setAttribute('role','status');
+ const heading=document.createElement('strong'),details=document.createElement('span'),label=document.createElement('span');
+ heading.textContent=rt(editId?'Booking updated':'Booking submitted');
+ details.textContent=roomName(room)+' · '+when+(dates.length>1?' · '+dates.length+(language==='zh'?' 个日期':' dates'):'');
+ label.textContent=rt(({pending:'Pending approval',confirmed:'Confirmed'})[state]||'Check status in My bookings');
+ status.append(heading,details,label);form.querySelector('.modal-body').hidden=true;
+ const footer=form.querySelector('.modal-footer');footer.before(status);
+ for(const child of [...footer.children])if(child!==shell)child.hidden=true;
+ const next=document.createElement('button');next.type='button';next.className='secondary';next.textContent=rt('New booking');next.onclick=()=>openForm(room);
+ const mine=document.createElement('button');mine.type='button';mine.className='primary';mine.textContent=rt('My bookings');mine.onclick=()=>{closeModal();mineTab=entry?myBookingGroup(entry):'pending';navigate('mine');if(entry)openDetail(entry.id);};
+ footer.prepend(next,mine);mine.focus({preventScroll:true});
+ setTimeout(()=>{if(form.isConnected&&revision===sessionRevision)shell.hidden=true;},60000);
 }

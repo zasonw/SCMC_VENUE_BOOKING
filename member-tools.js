@@ -194,9 +194,9 @@ async function confirmOccurrence(){
  const revision=sessionRevision;occurrenceBusy=true;mutationInFlight=true;
  const controls=[...form.querySelectorAll('button,input,select,textarea')];controls.forEach(e=>e.disabled=true);
  try{
-  await memberRpc('venue_series_edit','apply',payload);
+  const result=await memberRpc('venue_series_edit','apply',payload);
   if(revision!==sessionRevision)return;
-  if(document.getElementById('occurrence-form')===form)closeModal();await refreshLive();if(revision===sessionRevision)toast('Changes saved.');
+  if(document.getElementById('occurrence-form')===form)closeModal();await refreshLive();if(revision===sessionRevision)toast((language==='zh'?'已更新日期：':'Dates updated: ')+(result?.count??selectedRows.length));
  }catch(error){if(revision===sessionRevision&&document.getElementById('occurrence-form')===form){invalidateOccurrencePreview();repeatError(error);}}
  finally{occurrenceBusy=false;mutationInFlight=false;controls.forEach(e=>e.disabled=false);if(document.getElementById('occurrence-form')===form)for(const [key]of occurrenceFields)if(form.elements['change_'+key])form.elements['value_'+key].disabled=!form.elements['change_'+key].checked;}
 }

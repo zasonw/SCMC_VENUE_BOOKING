@@ -59,8 +59,9 @@ submitBooking=async function(event,id,block){
    repeatPreview={signature,rows};repeatRequestKey=crypto.randomUUID();document.getElementById('repeat-preview').innerHTML=renderRepeatPreview(rows);updateRepeatCount();return;
   }
   const dates=[...form.querySelectorAll('[name="occurrence"]:checked')].map(e=>e.value);if(!dates.length)throw Error('Select at least one available date.');
-  await recurringApi('create',{...payload,dates,request_key:repeatRequestKey});
+  const result=await recurringApi('create',{...payload,dates,request_key:repeatRequestKey});
   if(revision!==sessionRevision)return;
+  if(result?.series_id)form.dataset.savedSeries=result.series_id;
   selected=dates[0];month=selected.slice(0,7);slotSelection=null;
   if(document.getElementById('booking-form')===form&&form.dataset.morphActive!=='yes')closeModal();
   await refreshLive();if(revision===sessionRevision)toast('Series submitted.');return true;
