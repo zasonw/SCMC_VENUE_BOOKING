@@ -377,3 +377,49 @@ body.slots-expanded .assistant-launcher { display:none; }
  .account-controls > .notification-button { font-size:13px; padding:8px; }
  .notification-item { padding:14px 10px; }
 }
+
+.busy-strip {display:none}
+@media(max-width:700px){
+ .calendar-home .main {position:relative}
+ .calendar-home .main .topbar {padding-right:85px;margin-bottom:6px;min-height:48px}
+ .calendar-home .topbar > .language-switch {display:none}
+ .calendar-home .main .header {position:absolute;right:12px;top:12px;margin:0}
+ .calendar-home .header > div:first-child {display:none}
+ .calendar-home .calendar-tools {display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+ .calendar-home .calendar-tools > .seg {flex:1;min-width:125px;border:0;background:var(--control-surface)}
+ .calendar-home .calendar-tools .filters {display:contents}
+ .calendar-tools .filters select {order:5;flex:1 1 40%}
+ .calendar-home .filters .phone-filter-toggle {order:0;position:relative;width:44px;min-height:44px;padding:0;font-size:0;justify-content:center;background:var(--control-surface);border:0;border-radius:10px;gap:0}
+ .phone-filter-toggle:not([data-count="0"])[data-count]::after {content:attr(data-count);position:absolute;right:0;top:0;font-size:11px;color:white;background:var(--ink);border-radius:50%;width:16px}
+ .calendar-home .calendar-tools #assistant-launcher {position:static;transform:none;margin:0;width:44px;height:44px;box-shadow:none;border:0;background:var(--control-surface);color:var(--ink)}
+ .calendar-home .calendar-layout .panel-head {display:grid;grid-template-columns:44px auto 44px auto;align-items:center;justify-content:center;gap:3px}
+ .calendar-home .panel-head h2 {grid-column:2;grid-row:1}
+ .calendar-home .month-controls {display:contents}
+ .calendar-home .month-controls [data-arrow] {font-size:0;grid-row:1;width:44px;height:44px;border:0}
+ .month-controls [data-arrow] > * {display:none!important}
+ .month-controls [data-arrow]::after {content:attr(data-arrow);font:26px/1 sans-serif}
+ .month-controls [data-arrow="‹"] {grid-column:1}
+ .month-controls [data-arrow="›"] {grid-column:3}
+ .calendar-home .month-controls .today-btn {grid-column:4;grid-row:1;background:transparent;border:0}
+ .calendar-home .this-month .today-btn {display:none}
+ .calendar-home .calendar-grid .day {min-height:62px;cursor:pointer}
+ .calendar-home .calendar-grid .event-chip,.calendar-home .calendar-grid .calendar-more {display:none!important}
+ .calendar-home .busy-strip {display:flex;align-items:center;gap:2px;font-size:10px;color:var(--ink);min-height:15px;pointer-events:none}
+ .busy-strip i {width:5px;height:5px;border-radius:50%;background:var(--success)}
+ .busy-strip .pending {background:var(--pending)} .busy-strip .blocked {background:var(--blocked)}
+ .calendar-home .outside {background:var(--control-surface);color:var(--muted)}
+ .calendar-home .is-today .day-num {outline:2px solid var(--brand);outline-offset:-2px}
+ .calendar-home .selected-day-actions .primary,.calendar-home .agenda-foot .primary {background:var(--control-surface);color:var(--ink);box-shadow:none}
+ .calendar-wait .busy-strip:empty::before {content:'';width:60%;height:5px;background:#d8e1e9;border-radius:4px}
+ #modal[open]:has(.agenda-body) {position:fixed;inset:auto 0 0;margin:0;width:100%;max-width:none;border-radius:20px 20px 0 0;max-height:82dvh;padding-bottom:env(safe-area-inset-bottom)}
+}
+@media(max-width:700px){
+ .calendar-home #content > .calendar-tools {display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;align-items:center}
+ .calendar-home #content > .calendar-tools .filters {display:contents}
+ .calendar-tools .seg {grid-row:1;grid-column:1}
+ .calendar-tools .phone-filter-toggle {grid-row:1;grid-column:2}
+ .calendar-tools #assistant-launcher {grid-row:1;grid-column:3}
+ .calendar-home #content > .calendar-tools:has(.phone-filters-open) {grid-template-columns:minmax(0,1fr) 44px 44px}
+ .calendar-tools .phone-filters-open select {grid-column:1/-1}
+ .calendar-home .this-month button[onclick="today()"] {display:none!important}
+}

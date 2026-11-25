@@ -322,3 +322,4 @@ button:focus-visible,summary:focus-visible { outline:3px solid var(--brand); out
 #booking-form [hidden] { display:none!important; }
 @media(prefers-reduced-motion:no-preference){.mic-listening svg { animation:mic-glow 1.4s ease-in-out infinite alternate; }}
 @keyframes mic-glow { from {opacity:.55} to {opacity:1} }
+:root { --control-surface:#edf1f5; --blocked:#526479; }
