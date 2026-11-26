@@ -36,9 +36,9 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
  assert(ratio(brand.bg,brand.fg)>=4.5,'primary button text contrast');
  const noPageOverflow=async()=>assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'page overflow');
  await noPageOverflow();
- assert(await page.locator('.topbar > .language-switch').isVisible());
- await page.locator('.topbar [data-language=zh]').click();assert.equal(await page.locator('#heading').textContent(),'场地预约');
- await page.locator('.topbar [data-language=en]').click();await checkNavIcons();
+ await page.evaluate(()=>openAccountMenu());
+ await page.locator('#modal [data-language=zh]').click();assert.equal(await page.locator('#heading').textContent(),'场地预约');
+ await page.evaluate(()=>{closeModal();openAccountMenu()});await page.locator('#modal [data-language=en]').click();await page.evaluate(()=>closeModal());await checkNavIcons();
  assert(!await page.locator('.calendar-layout > .agenda').isVisible());
  assert(!await page.locator('.filters select').first().isVisible());
  assert(!await page.locator('.filters select').last().isVisible());
@@ -143,14 +143,14 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
   closeModal();session={user:{id:'fixture'}};role='member';roomFilter='';statusFilter='';mode='calendar';
   bookings=Array.from({length:6},(_,i)=>({id:'busy-'+i,room:1,date:selected,start:'09:00',end:'10:00',status:'confirmed',title:'Activity '+i,group:'Test',pic:'Jason',history:[]}));render();
  });
- assert.equal(await page.locator('.day.selected .event-chip:visible').count(),3);
+ assert.equal(await page.locator('.day.selected .busy-strip i:visible').count(),3);
  assert.equal(await page.locator('.day.selected .event-chip .calendar-room').first().textContent(),'圣堂');
- assert(await page.locator('.day.selected .event-chip .event-name').first().isVisible());
+ assert((await page.locator('.day.selected .busy-strip').textContent()).includes('+3'));
  await page.locator('.day.selected .day-num').click();
  assert(await page.locator('#modal .agenda-foot .primary').isVisible(),'phone date tap opens day with slot shortcut');
  await page.locator('#modal .agenda-foot .primary').click();assert(await page.locator('.slot-scroll').isVisible());
  await page.evaluate(()=>setMode('calendar'));
- await page.locator('.day.selected .calendar-more').click();assert.equal(await page.locator('#modal .agenda-item').count(),6);
+ await page.locator('.day.selected .day-num').click();assert.equal(await page.locator('#modal .agenda-item').count(),6);
  assert(await page.locator('#modal .modal-head button').isVisible());await page.evaluate(()=>closeModal());
  await page.locator('.selected-day-actions .primary').click();assert(await page.locator('.slot-scroll').isVisible());
  for(const width of [1024,1280,1440]){await page.setViewportSize({width,height:900});await page.evaluate(()=>{mode='calendar';render()});await noPageOverflow();}

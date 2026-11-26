@@ -1,11 +1,11 @@
 'use strict';
-// Only the browser-safe publishable key belongs here. Never use a service-role key.
-const SUPABASE_URL='https://lftsgwzokyzbfnejeoqn.supabase.co';
-const SUPABASE_KEY='sb_publishable_kXYq3rmWANHanFLvxIlqpA_Yrl43OQB';
+const previewNotice='Preview: bookings and sign-in are off.';
+let previewOnly=false;
 let bookingProfile={};
 let db, session=null, liveReady=false, refreshInFlight=false, mutationInFlight=false;
 let refreshPromise=null,refreshAgain=false,sessionRevision=0;
 Object.assign(translations,{
+ [previewNotice]:'预览模式：预约和登录已关闭。',
  'Sign in':'登录','Sign out':'退出','Register':'注册','Email':'邮箱','Password':'密码','Name':'姓名','Users':'用户','Member':'会员','Admin':'管理员','Guest':'访客',
  'Refresh':'刷新','Connecting…':'连接中…','Updated':'已更新','Connection failed. Please retry.':'连接失败 请重试',
  'Shared calendar':'共享日历','Sign in to book.':'登录后预约','Save':'保存','Make admin':'设为管理员','Remove admin':'移除管理员',
@@ -65,6 +65,7 @@ openForm=function(...args){if(!session)return authForm();if(!liveReady)return to
 const proceedBase=proceedSlots;
 proceedSlots=function(){if(!session)return authForm();if(!liveReady)return toast('Please wait for the calendar to connect.');proceedBase();};
 function authForm(mode='signin'){
+ if(previewOnly){toast(liveText(previewNotice));return;}
  const signup=mode==='signup',forgot=mode==='forgot',reset=mode==='reset';
  const title=signup?'Register':forgot?'Forgot password':reset?'Reset password':'Sign in';
  showModal(modalHead(title)+'<form onsubmit="submitAuth(event,\''+mode+'\')"><div class="modal-body"><div class="form-grid">'+
@@ -112,7 +113,11 @@ async function setAdmin(id,admin){if(!confirm(language==='zh'?(admin?'授予此�
 async function startLive(){
  rooms=['圣堂','副堂','新会议室','旧会议室','Cafe','厨房','亲子室','喜乐1','喜乐2'].map((name,i)=>({id:i+1,name,enabled:true}));bookings=[];offset=0;selected=dayKey();month=selected.slice(0,7);me='';
  document.getElementById('brand-icon').innerHTML='';document.getElementById('plus-icon').innerHTML='';render();
- try{if(!window.supabase)throw Error('Connection failed. Please retry.');db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+ try{if(!window.supabase)throw Error('Connection failed. Please retry.');const response=await fetch('/api/calendar-config',{cache:'no-store'});
+ if(!response.ok)throw Error('Connection failed. Please retry.');
+ const config=await response.json();
+ if(config.mode==='read-only'){previewOnly=true;liveStatus(previewNotice);return;}
+ db=window.supabase.createClient(config.url,config.publishableKey);
  db.auth.onAuthStateChange((event,nextSession)=>{
   if(event==='SIGNED_OUT'||(session?.user?.id||null)!==(nextSession?.user?.id||null))clearAccountState(nextSession);
   setTimeout(()=>{if(event==='PASSWORD_RECOVERY')authForm('reset');refreshLive();},0);

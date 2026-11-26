@@ -84,7 +84,7 @@ selectDay=function(date){
  if(openDay)showAgenda();
 };
 const uxLiveStatus=liveStatus;
-liveStatus=function(text,error=false){uxLiveStatus(text,error);document.querySelector('.connection-bar')?.classList.toggle('sync-idle',text==='Shared calendar'&&!error);};
+liveStatus=function(text,error=false){uxLiveStatus(text,error);if(error||liveReady)document.querySelector('.calendar-grid')?.classList.remove('calendar-wait');document.querySelector('.connection-bar')?.classList.toggle('sync-idle',text==='Shared calendar'&&!error);};
 let phoneFiltersOpen=false;
 let slotsExpanded=false;
 function toggleSlotWorkspace(){
@@ -120,7 +120,7 @@ const uxRenderBase=render;
 render=function(){
  // Keep the single assistant launcher alive when the old slot panel is replaced.
  const launcher=document.getElementById('assistant-launcher');
- if(launcher?.closest('.slot-proceed'))document.body.append(launcher);
+ if(launcher?.closest('.slot-proceed,.calendar-tools'))document.body.append(launcher);
  uxRenderBase();
  const main=document.querySelector('.main');
  if(main){main.id='main-content';main.tabIndex=-1;}
@@ -182,6 +182,28 @@ render=function(){
  document.getElementById('account-controls').insertAdjacentHTML('beforeend','<button class="secondary ux-account-button" onclick="openAccountMenu()">'+rt('Account')+'</button>');
  updateAccountUnread();
  polishUi();
+ if(view==='schedule'&&mode==='calendar'){
+  document.body.classList.add('calendar-home');
+  const toolbar=document.querySelector('.toolbar'),grid=document.querySelector('.calendar-grid');
+  if(toolbar&&launcher){toolbar.classList.add('calendar-tools');toolbar.append(launcher);}
+  const filter=toolbar?.querySelector('.phone-filter-toggle');
+  if(filter){filter.setAttribute('aria-label',filter.textContent);filter.dataset.count=String([roomFilter,statusFilter].filter(Boolean).length);}
+  const head=document.querySelector('.calendar-layout .panel-head');
+  head?.classList.toggle('this-month',month===dayKey().slice(0,7));
+  for(const b of head?.querySelectorAll('[onclick^="shiftMonth"]')||[]){const prev=b.getAttribute('onclick').includes('-');b.dataset.arrow=prev?'‹':'›';b.setAttribute('aria-label',language==='zh'?(prev?'上个月':'下个月'):(prev?'Previous month':'Next month'));}
+  for(const day of grid?.children||[]){
+   const strip=document.createElement('span');strip.className='busy-strip';strip.setAttribute('aria-hidden','true');
+   const items=[...day.querySelectorAll('.event-chip')];
+   for(const item of items.slice(0,3)){const dot=document.createElement('i');dot.className=item.classList.contains('pending')?'pending':item.classList.contains('blocked')?'blocked':'confirmed';strip.append(dot);}
+   if(items.length>3)strip.append('+'+(items.length-3));day.append(strip);
+  }
+  grid?.classList.toggle('calendar-wait',!liveReady&&!lastSyncError);
+  let start=null,swiped=false;
+  grid?.addEventListener('touchstart',e=>{swiped=false;start=e.touches.length===1?[e.touches[0].clientX,e.touches[0].clientY]:null;},{passive:true});
+  grid?.addEventListener('touchcancel',()=>{start=null;});
+  grid?.addEventListener('touchend',e=>{if(!start||!window.matchMedia('(max-width:700px)').matches)return;const dx=e.changedTouches[0].clientX-start[0],dy=e.changedTouches[0].clientY-start[1];start=null;if(Math.abs(dx)>75&&Math.abs(dy)<30){swiped=true;shiftMonth(dx<0?1:-1);}}, {passive:true});
+  grid?.addEventListener('click',e=>{if(swiped){e.stopImmediatePropagation();e.preventDefault();}},true);
+ }else document.body.classList.remove('calendar-home');
  const motionView=view+':'+mode+':'+(mode==='calendar'?month:'');
  if(uiPreviousView!==null&&uiPreviousView!==motionView)uiTransition(document.getElementById('content'));
  uiPreviousView=motionView;
