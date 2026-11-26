@@ -16,7 +16,14 @@ function sameTime(b,d){return b.date===d.date&&['pending','confirmed','blocked']
 async function boundedBody(request){const reader=request.body?.getReader();if(!reader)throw Error('BAD_REQUEST');let n=0,parts=[];while(true){const {done,value}=await reader.read();if(done)break;n+=value.length;if(n>8192){await reader.cancel();throw Error('BAD_REQUEST');}parts.push(value);}const bytes=new Uint8Array(n);let i=0;for(const p of parts){bytes.set(p,i);i+=p.length;}return JSON.parse(new TextDecoder().decode(bytes));}
 export default {async fetch(request,env){
  const url=new URL(request.url);
+ if(url.pathname==='/api/calendar-config'){
+  if(request.method!=='GET')return json({error:'METHOD'},405);
+  if(env.BOOKING_MODE==='read-only')return json({mode:'read-only'});
+  if(!env.SUPABASE_URL||!env.SUPABASE_KEY?.startsWith('sb_publishable_'))return json({error:'CONFIG_UNAVAILABLE'},503);
+  return json({mode:'live',url:env.SUPABASE_URL,publishableKey:env.SUPABASE_KEY});
+ }
  if(url.pathname!=='/api/assistant')return env.ASSETS.fetch(request);
+ if(env.BOOKING_MODE==='read-only')return request.method==='GET'?json({configured:false,mode:'draft-only'}):json({error:'AI_UNAVAILABLE'},503);
  if(request.method==='GET')return json({configured:!!env.AI,mode:'draft-only'});
  if(request.method!=='POST')return json({error:'METHOD'},405);
  if(request.headers.get('Origin')!==url.origin)return json({error:'ORIGIN'},403);

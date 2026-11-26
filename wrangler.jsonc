@@ -16,5 +16,10 @@
   "vars": {
     "SUPABASE_URL": "https://lftsgwzokyzbfnejeoqn.supabase.co",
     "SUPABASE_KEY": "sb_publishable_kXYq3rmWANHanFLvxIlqpA_Yrl43OQB"
+  },
+  "previews": {
+    "vars": {
+      "BOOKING_MODE": "read-only"
+    }
   }
 }
